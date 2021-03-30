@@ -5,7 +5,7 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    Console console;
+    Console console(62100);
 
     return a.exec();
 }

@@ -2,25 +2,52 @@
 #define SERVER_H
 
 #include <QObject>
-#include <QUdpSocket>
+
+#include <QWebSocket>
+#include <QWebSocketServer>
+
+#include <QSqlDatabase>
+
 #include <QJsonObject>
 #include <QJsonDocument>
 
-#define DEBUG_RCV_PEER
+#define JSONAME_TYPE "type"
+#define JSONAME_ROOMID "roomID"
+#define JSONAME_USERID "userID"
+#define JSONAME_WNDSPD "wind_speed"
+#define JSONAME_TEMP "tepture"
+#define JSONAME_MODE "model"
+
+#define DB_ADDR "127.0.0.1"
+#define DB_PORT 3306
+#define DB_DATABASE_NAME "hotel"
+#define DB_TABLE_NAME "opt"
+
+#define DEBUG_CONNECTED
+#define DEBUG_DISCONNECTED
 #define DEBUG_RCV_CONTENT
+#define DEBUG_DB_ERR
 
 class Console : public QObject
 {
     Q_OBJECT
 
 public:
+    explicit Console(quint16 port, QObject* parent = nullptr);
+    ~Console();
 
-    QUdpSocket* sock;
+private:
+    void onNewConnection();
+    void onDisconnect();
+    void process(const QString&);
 
-    Console();
+    QWebSocketServer* sock;
+    QList<QWebSocket*> lstClt;
 
-    void sockListen();
+private:
+    void connectMySQL();
 
+    QSqlDatabase db;
 };
 
 

@@ -1,5 +1,6 @@
 QT -= gui
-QT += network
+QT += websockets
+QT += sql
 
 # QT += widgets
 

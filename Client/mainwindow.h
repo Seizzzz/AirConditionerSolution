@@ -3,7 +3,9 @@
 
 #include <QMainWindow>
 
-#include <QUdpSocket>
+#include <QWebSocket>
+#include <QUrl>
+
 #include <QJsonObject>
 #include <QJsonDocument>
 
@@ -13,6 +15,11 @@
 #define JSONAME_WNDSPD "wind_speed"
 #define JSONAME_TEMP "tepture"
 #define JSONAME_MODE "model"
+
+#define SRV_ADDR "127.0.0.1"
+#define SRV_PORT "62100"
+
+#define DEBUG_CONNECTED
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -29,10 +36,10 @@ public:
 private:
     Ui::MainWindow *ui;
 
-    QUdpSocket* sock;
+    QWebSocket* sock;
 
-    int PORT_SRV = 62100;
-    char ADDR_SRV[32] = "127.0.0.1";
+    void onConnected();
+    void onMsgRcv(const QString&);
 
     void syncServer(int);
     void syncLocal();

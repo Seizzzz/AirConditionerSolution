@@ -1,38 +1,109 @@
 #include "console.h"
 
-#include <iostream>
 #include <QDebug>
 
-void Console::sockListen()
+static QString getIdentifier(QWebSocket* peer)
 {
-    QHostAddress addrClt;
-    quint16 portClt;
-
-    //rcv
-    QByteArray buf;
-    buf.resize(sock->pendingDatagramSize());
-    sock->readDatagram(buf.data(), buf.size(), &addrClt, &portClt);
-
-    const QString jsonString = QString(buf.data());
-
-#ifdef DEBUG_RCV_CONTENT
-    qDebug() << jsonString;
-#endif
-
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonString.toLocal8Bit().data());
-    QJsonObject json = jsonDoc.object();
-
-    //reply
-#ifdef DEBUG_RCV_PEER
-    qDebug() << sock->peerAddress() << sock->peerPort();
-#endif
-    sock->writeDatagram(buf, addrClt, portClt);
+    return QStringLiteral("%1 %2").arg(peer->peerAddress().toString(), QString::number(peer->peerPort()));
 }
 
-Console::Console()
+void Console::onNewConnection()
 {
-    sock = new QUdpSocket(this);
-    sock->bind(QHostAddress::LocalHost, 62100);
+    auto sockClt = sock->nextPendingConnection();
+#ifdef DEBUG_CONNECTED
+    qDebug() << getIdentifier(sockClt) << "connected";
+#endif
+    sockClt->setParent(this);
 
-    connect(sock, &QUdpSocket::readyRead, this, &Console::sockListen);
+    connect(sockClt, &QWebSocket::textMessageReceived, this, &Console::process);
+    connect(sockClt, &QWebSocket::disconnected, this, &Console::onDisconnect);
+
+    lstClt << sockClt;
+}
+
+void Console::onDisconnect()
+{
+    QWebSocket* sockClt = qobject_cast<QWebSocket*>(sender());
+#ifdef DEBUG_DISCONNECTED
+    qDebug() << getIdentifier(sockClt) << "disconnected";
+#endif
+    if(sockClt)
+    {
+        lstClt.removeAll(sockClt);
+        sockClt->deleteLater();
+    }
+}
+
+void Console::process(const QString& msg)
+{
+    //restore json
+    QWebSocket* clt = qobject_cast<QWebSocket*>(sender());
+
+#ifdef DEBUG_RCV_CONTENT
+    qDebug() << msg;
+#endif
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(msg.toLocal8Bit().data());
+    QJsonObject json = jsonDoc.object();
+
+    //process
+    int opt = json[JSONAME_TYPE].toInt();
+    switch(opt)
+    {
+    default:
+
+        qDebug() << opt;
+    }
+
+    //ret
+    clt->sendTextMessage(msg);
+}
+
+void Console::connectMySQL()
+{
+    if(QSqlDatabase::contains("connection"))
+    {
+        db = QSqlDatabase::database("connection");
+    }
+    else
+    {
+        db = QSqlDatabase::addDatabase("QODBC", "connection");
+        db.setHostName(DB_ADDR);
+        db.setPort(DB_PORT);
+        db.setDatabaseName(DB_DATABASE_NAME);
+
+        QTextStream qin(stdin);
+        QString buf;
+        qin >> buf;
+        db.setUserName(buf);
+        qin >> buf;
+        db.setPassword(buf);
+    }
+
+    if(!db.open())
+    {
+#ifdef DEBUG_DB_ERR
+        qDebug() << "failed to connect db";
+#endif
+    }
+
+}
+
+Console::Console(quint16 port, QObject* parent) :
+    QObject(parent),
+    sock(new QWebSocketServer(QStringLiteral("Server"),
+                              QWebSocketServer::NonSecureMode,
+                              this))
+{
+    if(sock->listen(QHostAddress::Any, port))
+    {
+        connect(sock, &QWebSocketServer::newConnection, this, &Console::onNewConnection);
+    }
+
+    connectMySQL();
+}
+
+Console::~Console()
+{
+    sock->close();
+    db.close();
 }

@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-struct conditionerInfo
+struct syncInfo
 {
     int type;
     int roomID;
@@ -11,7 +11,7 @@ struct conditionerInfo
     int wndspd;
     int temp;
 
-    conditionerInfo()
+    syncInfo()
     {
         type = -1;
         roomID = -1;
@@ -22,7 +22,7 @@ struct conditionerInfo
     }
 };
 
-static conditionerInfo state;
+static syncInfo state;
 
 void MainWindow::syncServer(int type)
 {
@@ -41,25 +41,23 @@ void MainWindow::syncServer(int type)
 
     auto jsonString = QString(QJsonDocument(json).toJson());
 
-    QByteArray buf;
-    buf.append(jsonString);
-
-    sock->writeDatagram(buf, QHostAddress(ADDR_SRV), PORT_SRV);
+    sock->sendTextMessage(jsonString);
 }
 
-void MainWindow::syncLocal()
+void MainWindow::onConnected()
+{
+#ifdef DEBUG_CONNECTED
+    qDebug() << "connected";
+#endif
+}
+
+void MainWindow::onMsgRcv(const QString& msg)
 {
     //state = return;
-    QByteArray buf;
-    buf.resize(sock->pendingDatagramSize());
-    sock->readDatagram(buf.data(), buf.size());
-
-    const QString jsonString = QString(buf.data());
-
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonString.toLocal8Bit().data());
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(msg.toLocal8Bit().data());
     QJsonObject json = jsonDoc.object();
 
-    //tackle
+    //process
     switch(json[JSONAME_TYPE].toInt())
     {
     default:
@@ -78,14 +76,22 @@ void MainWindow::syncLocal()
     ui->LCDWndspd->display(state.wndspd);
 }
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow),
+    sock(new QWebSocket())
 {
     ui->setupUi(this);
-    sock = new QUdpSocket(this);
 
-    connect(sock, &QUdpSocket::readyRead, this, &MainWindow::syncLocal);
+    //socket
+    sock = new QWebSocket();
+    connect(sock, &QWebSocket::connected, this, &MainWindow::onConnected);
+    connect(sock, &QWebSocket::textMessageReceived, this, &MainWindow::onMsgRcv);
+
+    QString path = QString("ws://%1:%2").arg(QString(SRV_ADDR), QString(SRV_PORT));
+    QUrl url = QUrl(path);
+
+    sock->open(url);
 
     //power
     connect(ui->pushButtonPower, &QPushButton::clicked, [=](){
@@ -119,5 +125,7 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+    sock->close();
+    sock->deleteLater();
 }
 
