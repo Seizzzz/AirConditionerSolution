@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
 
 #include <QWebSocket>
 #include <QUrl>
@@ -19,7 +20,10 @@
 #define SRV_ADDR "127.0.0.1"
 #define SRV_PORT "62100"
 
-#define DEBUG_CONNECTED
+#define DEBUG
+#ifdef DEBUG
+    #define DEBUG_CONNECTION
+#endif
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -34,13 +38,19 @@ public:
     ~MainWindow();
 
 private:
+    QTimer* timerReconnect;
+
+private:
     Ui::MainWindow *ui;
 
     QWebSocket* sock;
+    bool isConnected;
 
     void onConnected();
+    void onDisconnect();
     void onMsgRcv(const QString&);
 
+    void connectSrv();
     void syncServer(int);
     void syncLocal();
 };

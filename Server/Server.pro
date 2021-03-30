@@ -2,8 +2,6 @@ QT -= gui
 QT += websockets
 QT += sql
 
-# QT += widgets
-
 CONFIG += c++11 console
 CONFIG -= app_bundle
 

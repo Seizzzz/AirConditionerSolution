@@ -10,6 +10,7 @@ static QString getIdentifier(QWebSocket* peer)
 void Console::onNewConnection()
 {
     auto sockClt = sock->nextPendingConnection();
+    if(!sockClt->isValid()) return;
 #ifdef DEBUG_CONNECTED
     qDebug() << getIdentifier(sockClt) << "connected";
 #endif
@@ -40,7 +41,7 @@ void Console::process(const QString& msg)
     QWebSocket* clt = qobject_cast<QWebSocket*>(sender());
 
 #ifdef DEBUG_RCV_CONTENT
-    qDebug() << msg;
+    qDebug() << "rcv: " << msg;
 #endif
     QJsonDocument jsonDoc = QJsonDocument::fromJson(msg.toLocal8Bit().data());
     QJsonObject json = jsonDoc.object();
@@ -50,11 +51,26 @@ void Console::process(const QString& msg)
     switch(opt)
     {
     default:
+        int roomid = json[JSONAME_ROOMID].toInt();
+        int wndspd = json[JSONAME_WNDSPD].toInt();
+        int temp = json[JSONAME_TEMP].toInt();
 
-        qDebug() << opt;
+        QSqlQuery query(db);
+        auto stmt = QString("insert into opt values(%1, null, %2, null, %3, %4)").arg(roomid).arg(opt).arg(wndspd).arg(temp);
+        bool execed = query.exec(stmt);
+
+#ifdef DEBUG_DB_QUERY
+        qDebug() << "query exec: " << stmt;
+        //qDebug() << query.lastError();
+        qDebug() << "suc execed: " << execed;
+#endif
+
     }
 
     //ret
+#ifdef DEBUG_SEND_CONTENT
+    qDebug() << "send: " << msg;
+#endif
     clt->sendTextMessage(msg);
 }
 
@@ -82,7 +98,14 @@ void Console::connectMySQL()
     if(!db.open())
     {
 #ifdef DEBUG_DB_ERR
-        qDebug() << "failed to connect db";
+        //qDebug() << "Failed connect to db";
+        qDebug() << db.lastError().text();
+#endif
+    }
+    else
+    {
+#ifdef DEBUG_DB_ERR
+        qDebug() << "connected db";
 #endif
     }
 
@@ -94,11 +117,13 @@ Console::Console(quint16 port, QObject* parent) :
                               QWebSocketServer::NonSecureMode,
                               this))
 {
+    //sock
     if(sock->listen(QHostAddress::Any, port))
     {
         connect(sock, &QWebSocketServer::newConnection, this, &Console::onNewConnection);
     }
 
+    //db
     connectMySQL();
 }
 

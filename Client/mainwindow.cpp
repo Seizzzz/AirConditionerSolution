@@ -46,8 +46,19 @@ void MainWindow::syncServer(int type)
 
 void MainWindow::onConnected()
 {
-#ifdef DEBUG_CONNECTED
+    isConnected = true;
+    timerReconnect->stop();
+#ifdef DEBUG_CONNECTION
     qDebug() << "connected";
+#endif
+}
+
+void MainWindow::onDisconnect()
+{
+    isConnected = false;
+    timerReconnect->start(1);
+#ifdef DEBUG_CONNECTION
+    qDebug() << "disconnected";
 #endif
 }
 
@@ -76,22 +87,39 @@ void MainWindow::onMsgRcv(const QString& msg)
     ui->LCDWndspd->display(state.wndspd);
 }
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow),
-    sock(new QWebSocket())
+void MainWindow::connectSrv()
 {
-    ui->setupUi(this);
-
-    //socket
-    sock = new QWebSocket();
-    connect(sock, &QWebSocket::connected, this, &MainWindow::onConnected);
-    connect(sock, &QWebSocket::textMessageReceived, this, &MainWindow::onMsgRcv);
-
     QString path = QString("ws://%1:%2").arg(QString(SRV_ADDR), QString(SRV_PORT));
     QUrl url = QUrl(path);
 
     sock->open(url);
+}
+
+MainWindow::MainWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::MainWindow),
+    sock(new QWebSocket()),
+    isConnected(false)
+{
+    ui->setupUi(this);
+
+    //timerReconnect
+    timerReconnect = new QTimer(this);
+    connect(timerReconnect, &QTimer::timeout, [=](){
+#ifdef DEBUG_CONNECTION
+        qDebug() << "try to connecting...";
+#endif
+        if(!isConnected) connectSrv();
+        timerReconnect->start(3000);
+    });
+
+
+    //socket
+    sock = new QWebSocket();
+    connect(sock, &QWebSocket::connected, this, &MainWindow::onConnected);
+    connect(sock, &QWebSocket::disconnected, this, &MainWindow::onDisconnect);
+    connect(sock, &QWebSocket::textMessageReceived, this, &MainWindow::onMsgRcv);
+    connectSrv();
 
     //power
     connect(ui->pushButtonPower, &QPushButton::clicked, [=](){

@@ -7,6 +7,7 @@
 #include <QWebSocketServer>
 
 #include <QSqlDatabase>
+#include <QSqlQuery>
 
 #include <QJsonObject>
 #include <QJsonDocument>
@@ -23,10 +24,18 @@
 #define DB_DATABASE_NAME "hotel"
 #define DB_TABLE_NAME "opt"
 
-#define DEBUG_CONNECTED
-#define DEBUG_DISCONNECTED
-#define DEBUG_RCV_CONTENT
-#define DEBUG_DB_ERR
+#define DEBUG
+#ifdef DEBUG
+    #include <QDebug>
+    #include <QSqlError>
+
+    #define DEBUG_CONNECTED
+    #define DEBUG_DISCONNECTED
+    #define DEBUG_RCV_CONTENT
+    #define DEBUG_SEND_CONTENT
+    #define DEBUG_DB_QUERY
+    #define DEBUG_DB_ERR
+#endif
 
 class Console : public QObject
 {
