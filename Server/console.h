@@ -11,18 +11,31 @@
 
 #include <QJsonObject>
 #include <QJsonDocument>
+#include<QDateTime>
+#define JSONAME_TYPE "MsgType"
+#define JSONAME_ROOMID "RoomId"
+#define JSONAME_USERID "UserId"
+#define JSONAME_WNDSPD "WindSpeed"
+#define JSONAME_TEMP "Temp"
+#define JSONAME_MODE "Mode"
+#define JSONAME_AIRDATA "AirData"
+#define JSONAME_ACK "Ack"
+#define JSONAME_MONEY "Money"
+#define JSONAME_DETAIL "CostDetail"
+#define JSONAME_STIME "TimeStart"
+#define JSONAME_ETIME "TimeEnd"
+#define JSONAME_COST "Cost"
+#define JSONAME_AIRSTATUE "AirStatus"
+#define JSONAME_ISON "IsOn"
+#define JSONAME_ALL "AllRecord"
 
-#define JSONAME_TYPE "type"
-#define JSONAME_ROOMID "roomID"
-#define JSONAME_USERID "userID"
-#define JSONAME_WNDSPD "wind_speed"
-#define JSONAME_TEMP "tepture"
-#define JSONAME_MODE "model"
 
 #define DB_ADDR "127.0.0.1"
+//#define DB_ADDR "10.128.248.29"
 #define DB_PORT 3306
 #define DB_DATABASE_NAME "hotel"
-#define DB_TABLE_NAME "opt"
+//#define DB_DATABASE_NAME "hotelinfo"
+#define DB_TABLE_NAME "room"
 
 #define DEBUG
 #ifdef DEBUG
@@ -44,19 +57,25 @@ class Console : public QObject
 public:
     explicit Console(quint16 port, QObject* parent = nullptr);
     ~Console();
-
+    QString ProcessType1(const QJsonObject& json);
+    QString ProcessType2(const QJsonObject& json);
+    QString ProcessType3(const QJsonObject& json);
+    QString ProcessType4(const QJsonObject& json);
+    QString ProcessType5(const QJsonObject& json);
+    QString ProcessType6(const QJsonObject& json);
+    QString ProcessType7(const QJsonObject& json);
+    QString ProcessType8(const QJsonObject& json);
+    int ComputeMoney(const QJsonObject& json);
 private:
     void onNewConnection();
     void onDisconnect();
     void process(const QString&);
-
     QWebSocketServer* sock;
     QList<QWebSocket*> lstClt;
-
 private:
     void connectMySQL();
-
     QSqlDatabase db;
+    QDateTime time;
 };
 
 

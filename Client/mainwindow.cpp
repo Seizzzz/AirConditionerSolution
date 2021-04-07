@@ -1,46 +1,51 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+struct AirData
+{
+    int temp;
+    int wndspd;
+    int mode;
+
+    AirData()
+    {
+        temp = 26;
+        wndspd = 0;
+        mode = 0;
+    }
+};
+
 struct syncInfo
 {
     int type;
     int roomID;
     int userID;
-
-    int mode;
-    int wndspd;
-    int temp;
-
-    syncInfo()
-    {
-        type = -1;
-        roomID = -1;
-        userID = -1;
-        mode = -1;
-        wndspd = -1;
-        temp = -1;
-    }
+    AirData airdata;
 };
 
+static syncInfo old_state;
 static syncInfo state;
 
 void MainWindow::syncServer(int type)
 {
     QJsonObject json;
+    QJsonObject jsonAirData;
 
     json[JSONAME_TYPE] = type;
     switch(type)
     {
-    default:
+    case 1:
         json[JSONAME_ROOMID] = state.roomID;
         json[JSONAME_USERID] = state.userID;
-        json[JSONAME_WNDSPD] = state.wndspd;
-        json[JSONAME_MODE] = state.mode;
-        json[JSONAME_TEMP] = state.temp;
+
+        jsonAirData[JSONAME_TEMP] = state.airdata.temp;
+        jsonAirData[JSONAME_WNDSPD] = state.airdata.wndspd;
+        jsonAirData[JSONAME_MODE] = state.airdata.mode;
+        auto jsonAirDataString = QString(QJsonDocument(jsonAirData).toJson());
+        json[JSONAME_AIRDATA] = jsonAirDataString;
     }
 
     auto jsonString = QString(QJsonDocument(json).toJson());
-
     sock->sendTextMessage(jsonString);
 }
 
@@ -71,31 +76,36 @@ void MainWindow::onMsgRcv(const QString& msg)
     //process
     switch(json[JSONAME_TYPE].toInt())
     {
-    default:
-        state.roomID = json[JSONAME_ROOMID].toInt();
-        state.userID = json[JSONAME_USERID].toInt();
-        state.wndspd = json[JSONAME_WNDSPD].toInt();
-        state.mode = json[JSONAME_MODE].toInt();
-        state.temp = json[JSONAME_TEMP].toInt();
+    case 1:
+        if(json[JSONAME_ACK].toBool())
+        {
+            //suc
+            break; // do nothing
+        }
+        else
+        {
+            //failed
+            state = old_state;
+        }
     }
 
-    //update
-    if(state.mode) ui->LCDTemp->setStyleSheet("color: green");
-    else ui->LCDTemp->setStyleSheet("color: black");
+    //update ui
+    if(state.airdata.mode) ui->LCDTemp->setStyleSheet("color: green");
+    else ui->LCDTemp->setStyleSheet("color: red");
 
-    ui->LCDTemp->display(state.temp);
-    ui->LCDWndspd->display(state.wndspd);
+    ui->LCDTemp->display(state.airdata.temp);
+    ui->LCDWndspd->display(state.airdata.wndspd);
 }
 
-void MainWindow::connectSrv()
+void MainWindow::connectSrv(QString ip, int port)
 {
-    QString path = QString("ws://%1:%2").arg(QString(SRV_ADDR), QString(SRV_PORT));
+    QString path = QString("ws://%1:%2").arg(ip).arg(port);
     QUrl url = QUrl(path);
 
     sock->open(url);
 }
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(QString ip, int port, QString room, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     sock(new QWebSocket()),
@@ -109,43 +119,46 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifdef DEBUG_CONNECTION
         qDebug() << "try to connecting...";
 #endif
-        if(!isConnected) connectSrv();
+        if(!isConnected) connectSrv(ip, port);
         timerReconnect->start(3000);
     });
 
-
     //socket
-    sock = new QWebSocket();
     connect(sock, &QWebSocket::connected, this, &MainWindow::onConnected);
     connect(sock, &QWebSocket::disconnected, this, &MainWindow::onDisconnect);
     connect(sock, &QWebSocket::textMessageReceived, this, &MainWindow::onMsgRcv);
-    connectSrv();
+    connectSrv(ip, port);
 
     //power
     connect(ui->pushButtonPower, &QPushButton::clicked, [=](){
-        state.mode = !state.mode;
+        old_state = state;
+        state.airdata.mode = !state.airdata.mode;
         syncServer(1);
     });
 
     //adjust temp
     connect(ui->pushButtonTempUp, &QPushButton::clicked, [=](){
-        ++state.temp;
+        old_state = state;
+        ++state.airdata.temp;
         syncServer(1);
 
     });
     connect(ui->pushButtonTempDown, &QPushButton::clicked, [=](){
-        --state.temp;
+        old_state = state;
+        --state.airdata.temp;
         syncServer(1);
     });
 
     //adjust wndspd
     connect(ui->pushButtonWndspdUp, &QPushButton::clicked, [=](){
-        ++state.wndspd;
+        old_state = state;
+        ++state.airdata.wndspd;
         syncServer(1);
 
     });
     connect(ui->pushButtonWndspdDown, &QPushButton::clicked, [=](){
-        --state.wndspd;
+        old_state = state;
+        --state.airdata.wndspd;
         syncServer(1);
     });
 }

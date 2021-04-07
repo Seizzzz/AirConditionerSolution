@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <QString>
 
 #include <QWebSocket>
 #include <QUrl>
@@ -10,15 +11,14 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
-#define JSONAME_TYPE "type"
-#define JSONAME_ROOMID "roomID"
-#define JSONAME_USERID "userID"
-#define JSONAME_WNDSPD "wind_speed"
-#define JSONAME_TEMP "tepture"
-#define JSONAME_MODE "model"
-
-#define SRV_ADDR "127.0.0.1"
-#define SRV_PORT "62100"
+#define JSONAME_TYPE "MsgType"
+#define JSONAME_ROOMID "RoomId"
+#define JSONAME_USERID "UserId"
+#define JSONAME_WNDSPD "WindSpeed"
+#define JSONAME_TEMP "Temp"
+#define JSONAME_MODE "Mode"
+#define JSONAME_AIRDATA "AirData"
+#define JSONAME_ACK "Ack"
 
 #define DEBUG
 #ifdef DEBUG
@@ -34,11 +34,12 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(QString ip, int port, QString room, QWidget *parent = nullptr);
     ~MainWindow();
 
 private:
     QTimer* timerReconnect;
+    QString svRoomID;
 
 private:
     Ui::MainWindow *ui;
@@ -50,7 +51,7 @@ private:
     void onDisconnect();
     void onMsgRcv(const QString&);
 
-    void connectSrv();
+    void connectSrv(QString, int);
     void syncServer(int);
     void syncLocal();
 };
