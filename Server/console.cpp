@@ -7,6 +7,16 @@ static QString getIdentifier(QWebSocket* peer)
     return QStringLiteral("%1 %2").arg(peer->peerAddress().toString(), QString::number(peer->peerPort()));
 }
 
+QJsonObject Console::string2jsonobj(const QString& str)
+{
+    return QJsonDocument::fromJson(str.toLocal8Bit().data()).object();
+}
+
+QString Console::jsonobj2string(const QJsonObject& obj)
+{
+    return QString(QJsonDocument(obj).toJson());
+}
+
 void Console::onNewConnection()
 {
     auto sockClt = sock->nextPendingConnection();
@@ -36,24 +46,22 @@ void Console::onDisconnect()
 }
 QString Console::ProcessType1(const QJsonObject& json)
 {
-    auto stringAirData = json[JSONAME_AIRDATA].toString();
-    QJsonObject jsonAirData = QJsonDocument::fromJson(stringAirData.toLocal8Bit().data()).object();
+    auto jsonAirData = string2jsonobj(json[JSONAME_AIRDATA].toString());
 
+    //judge legal
     int wantedTemp = jsonAirData[JSONAME_TEMP].toInt();
     int wantedWndSpd = jsonAirData[JSONAME_WNDSPD].toInt();
-
-    qDebug() << wantedTemp << wantedWndSpd;
-
     if(wantedTemp > 30 || wantedTemp < 15 || wantedWndSpd > 3 || wantedWndSpd < 0)
     {
         QJsonObject msg;
         msg[JSONAME_TYPE] = 1;
         msg[JSONAME_ACK] = false;
 
-        auto jsonString = QString(QJsonDocument(msg).toJson());
+        auto jsonString = jsonobj2string(msg);
         return jsonString;
     }
 
+    //save to db
     QSqlQuery query(db);
     time = QDateTime::currentDateTime();   //get current time
     int timeT = time.toTime_t();
@@ -68,18 +76,16 @@ QString Console::ProcessType1(const QJsonObject& json)
         qDebug() << "suc execed: " << execed;
 #endif
 
-    QJsonObject mesg; //send mesg to client
+    //constrct ret msg
+    QJsonObject msg;
     if(query.next()) { //updata successful
-        mesg[JSONAME_TYPE] = 1;
-        mesg[JSONAME_ACK] = true;
+        msg[JSONAME_TYPE] = 1;
+        msg[JSONAME_ACK] = true;
         //add other information
     }
-    auto jsonString = QString(QJsonDocument(mesg).toJson());
 
+    auto jsonString = jsonobj2string(msg);
     return jsonString;
-#ifdef DEBUG_SEND_CONTENT
-    qDebug() << "1234\n";
-#endif
 }
 
 int Console::ComputeMoney(const QJsonObject& json){
@@ -95,12 +101,14 @@ int Console::ComputeMoney(const QJsonObject& json){
 }
 
 QString Console::ProcessType2(const QJsonObject& json){
-    int money = ComputeMoney(json);
-    QJsonObject mesg;
-    mesg[JSONAME_TYPE] = 2;
-    mesg[JSONAME_MONEY] = money;
-    auto jsonString = QString(QJsonDocument(mesg).toJson());
+    //int money = ComputeMoney(json);
+    int money = rand();
 
+    QJsonObject msg;
+    msg[JSONAME_TYPE] = 2;
+    msg[JSONAME_MONEY] = money;
+
+    auto jsonString = jsonobj2string(msg);
     return jsonString;
 }
 
@@ -123,15 +131,16 @@ QString Console::ProcessType3(const QJsonObject& json){
                       ).arg(roomId).arg(json[JSONAME_USERID].toInt()).arg(0).arg(0).arg(0).arg(timeT);
         query.exec(str);
     }
-    QJsonObject mesg; //send mesg to front desk
+
+    QJsonObject msg; //send mesg to front desk
     if(roomId) {
-        mesg[JSONAME_TYPE] = 3;
-        mesg[JSONAME_ROOMID] = roomId;
-        mesg[JSONAME_USERID] = json[JSONAME_USERID];
+        msg[JSONAME_TYPE] = 3;
+        msg[JSONAME_ROOMID] = roomId;
+        msg[JSONAME_USERID] = json[JSONAME_USERID];
     }
     //if(!roomId) qDebug << "no free room"; //no free rooms
-    auto jsonString = QString(QJsonDocument(mesg).toJson());
 
+    auto jsonString = jsonobj2string(msg);
     return jsonString;
 }
 
@@ -158,6 +167,7 @@ QString Console::ProcessType4(const QJsonObject& json){
         //详单信息获取
     }
 }
+
 QString Console::ProcessType5(const QJsonObject& json){
 
 }
@@ -179,8 +189,7 @@ void Console::process(const QString& msg)
 #ifdef DEBUG_RCV_CONTENT
     qDebug() << "rcv: " << msg;
 #endif
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(msg.toLocal8Bit().data());
-    QJsonObject json = jsonDoc.object();
+    QJsonObject json = string2jsonobj(msg);
     //process
     int opt = json[JSONAME_TYPE].toInt();
     QString jsonRet;
@@ -248,7 +257,7 @@ void Console::connectMySQL()
     //qin >> buf;
     db.setUserName("root");
     //qin >> buf;
-    db.setPassword("Battle126");
+    db.setPassword("test");
 //    }
 
     if(!db.open())

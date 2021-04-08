@@ -108,7 +108,7 @@
         <number>2</number>
        </property>
        <property name="intValue" stdset="0">
-        <number>0</number>
+        <number>1</number>
        </property>
       </widget>
      </item>
@@ -138,12 +138,25 @@
      </item>
     </layout>
    </widget>
-   <widget class="QPushButton" name="pushButtonPower">
+   <widget class="QPushButton" name="pushButtonMode">
     <property name="geometry">
      <rect>
       <x>260</x>
       <y>10</y>
       <width>189</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Mode</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButtonPower">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>10</y>
+      <width>75</width>
       <height>23</height>
      </rect>
     </property>

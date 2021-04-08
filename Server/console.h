@@ -57,6 +57,12 @@ class Console : public QObject
 public:
     explicit Console(quint16 port, QObject* parent = nullptr);
     ~Console();
+
+private:
+    QJsonObject string2jsonobj(const QString& str);
+    QString jsonobj2string(const QJsonObject& obj);
+
+private:
     QString ProcessType1(const QJsonObject& json);
     QString ProcessType2(const QJsonObject& json);
     QString ProcessType3(const QJsonObject& json);
