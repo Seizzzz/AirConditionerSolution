@@ -2,12 +2,14 @@
 #include "ui_mainwindow.h"
 
 #include "room.h"
+#include "reception.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
     roomID = ui->lineEditRoomID->text();
     srvIP = ui->lineEditIP->text();
     srvPort = ui->lineEditPort->text().toInt();
@@ -25,10 +27,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //push button
     connect(ui->pushButtonRoom, &QPushButton::clicked, [=](){
-        Room w(srvIP, srvPort, roomID);
-        w.show();
+        //this->hide();
+        auto* w = new Room(srvIP, srvPort, roomID);
+        w->show();
     });
-
+    connect(ui->pushButtonReception, &QPushButton::clicked, [=](){
+        //this->hide();
+        auto* w = new Reception(srvIP, srvPort);
+        w->show();
+    });
 }
 
 MainWindow::~MainWindow()

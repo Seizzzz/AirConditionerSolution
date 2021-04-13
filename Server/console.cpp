@@ -49,18 +49,48 @@ void Console::onDisconnect()
     }
 }
 
+//从数据库查询指定roomID、userID的金额
 int Console::getPriceCost(const QJsonObject& json){
-    return rand();
-
     QSqlQuery query(db);
+
     int money = 0;
-    QString str = QString("select * from room where RoomId = '%1' and UserId = '%2' ordered by Time")
-            .arg(json[JSONAME_ROOMID].toInt())
-            .arg(json[JSONAME_USERID].toInt());
-    query.exec(str);
-    while(query.next()){
-        money++;
+    QString str = QString("select * from %1 where %2 = %3 and %4 = %5")
+            .arg(DBNAME_TABLE_ROOM)
+            .arg(DBNAME_FIELD_RID)
+            .arg(json[JSONAME_ROOMID].toString())
+            .arg(DBNAME_FIELD_UID)
+            .arg(json[JSONAME_USERID].toString());
+
+#ifdef DEBUG_DB_QUERY
+    bool execed = query.exec(str);
+    qDebug()<< "id and userid" << json[JSONAME_ROOMID] << json[JSONAME_USERID];
+    qDebug() << "query exec: " << str;
+    //qDebug() << query.lastError();
+    qDebug() << "suc execed: " << execed;
+    qDebug() << "number:" << query.size();
+#endif
+
+    int subtime = 0, temp_time;
+    int airstate;
+    for(int i = 0; query.next(); i++, subtime = 0) {
+        int tempture = query.value(3).toInt();
+        int wind = query.value(2).toInt();
+        if(i == 0) {
+            temp_time = query.value(5).toInt();
+            airstate = query.value(4).toInt();
+        }
+        else if((airstate == 0 && query.value(4).toInt() == 0)
+                || (airstate == 0 && query.value(4).toInt() == 1))
+        {
+            subtime = 0;
+        }
+        else subtime = query.value(5).toInt() - temp_time;
+
+        money += (abs(tempture - 23) + abs(wind - 3))*subtime;
+        temp_time = query.value(5).toInt();
+        airstate = query.value(4).toInt();
     }
+
     return money;
 }
 
@@ -74,14 +104,15 @@ QString Console::ProcessType0(const QJsonObject& json)
     //插入开关的控制信息
     QSqlQuery query(db);
     int timeStamp = QDateTime::currentSecsSinceEpoch();
-    QString stmt = QString("insert into opt values(%1,%2,%3,%4,%5,%6,%7)")
-            .arg(json[JSONAME_ROOMID].toInt())
-            .arg(json[JSONAME_USERID].toInt())
-            .arg("NULL")
+    QString stmt = QString("insert into %1 values('%2', '%3', %4, %5, %6, %7, %8)")
+            .arg(DBNAME_TABLE_ROOM)
+            .arg(json[JSONAME_ROOMID].toString())
+            .arg(json[JSONAME_USERID].toString())
             .arg("NULL")
             .arg("NULL")
             .arg(isPowerOn)
-            .arg(timeStamp);
+            .arg(timeStamp)
+            .arg("NULL");
     bool execed = query.exec(stmt);
 #ifdef DEBUG_DB_QUERY
     qDebug() << "query exec: " << stmt;
@@ -105,9 +136,18 @@ QString Console::ProcessType1(const QJsonObject& json, QString& idt)
     QString roomID = json[JSONAME_ROOMID].toString();
 
     QSqlQuery query(db);
-    QString str = QString("select userId from room where roomId = '%1'")
-            .arg(roomID);
-    query.exec(str);
+    QString stmt = QString("select %1 from %2 where %3 = '%4' order by %5 desc")
+            .arg(DBNAME_FIELD_UID)
+            .arg(DBNAME_TABLE_ROOM)
+            .arg(DBNAME_FIELD_RID)
+            .arg(roomID)
+            .arg(DBNAME_FIELD_TIME);
+    bool execed = query.exec(stmt);
+#ifdef DEBUG_DB_QUERY
+    qDebug() << "query exec: " << stmt;
+    //qDebug() << query.lastError();
+    qDebug() << "suc execed: " << execed;
+#endif
 
     if(query.next())
     {
@@ -118,7 +158,7 @@ QString Console::ProcessType1(const QJsonObject& json, QString& idt)
         //保存一个连接与rid和uid的映射关系，为后续功能备用
         sockInfo.insert(idt, userInfo(roomID, userID));
     }
-    else qDebug() << "room access denied";
+    else qDebug() << "room access denied"; //没有查询到userid
 
     auto jsonString = jsonobj2string(msg);
     return jsonString;
@@ -143,14 +183,15 @@ QString Console::ProcessType2(const QJsonObject& json)
         //将合法的控制信息保存到数据库中
         QSqlQuery query(db);
         int timeStamp = QDateTime::currentSecsSinceEpoch();
-        QString stmt = QString("insert into opt values(%1,%2,%3,%4,%5,%6,%7)")
-                .arg(json[JSONAME_ROOMID].toInt())
-                .arg(json[JSONAME_USERID].toInt())
+        QString stmt = QString("insert into %1 values('%2', '%3', %4, %5, %6, %7, %8)")
+                .arg(DBNAME_TABLE_ROOM)
+                .arg(json[JSONAME_ROOMID].toString())
+                .arg(json[JSONAME_USERID].toString())
                 .arg(jsonAirData[JSONAME_WNDSPD].toInt())
                 .arg(jsonAirData[JSONAME_TEMP].toInt())
-                .arg(jsonAirData[JSONAME_MODE].toInt())
-                .arg(1)
-                .arg(timeStamp);
+                .arg(jsonAirData[JSONAME_POWER].toInt())
+                .arg(timeStamp)
+                .arg(jsonAirData[JSONAME_MODE].toInt());
         bool execed = query.exec(stmt);
 #ifdef DEBUG_DB_QUERY
         qDebug() << "query exec: " << stmt;
@@ -175,40 +216,67 @@ QString Console::ProcessType3(const QJsonObject& json)
 
     //获取所有空房间
     QSqlQuery query(db);
-    QString str = QString("select Roomid from roomstate where State = '%1'").arg(1);
-    query.exec(str);
+    QString stmt = QString("select %1 from %2 where %3 = %4")
+            .arg(DBNAME_FIELD_RID2)
+            .arg(DBNAME_TABLE_ROOMSTATE)
+            .arg(DBNAME_FIELD_STATE)
+            .arg(1);
+    query.exec(stmt);
+    bool execed = query.exec(stmt);
+#ifdef DEBUG_DB_QUERY
+    qDebug() << "query exec: " << stmt;
+    //qDebug() << query.lastError();
+    qDebug() << "suc execed: " << execed;
+#endif
 
-    int roomId = -1;
+    QString roomID = "UNDEFINED";
     if(query.next())
     {
         //选择查询到的第一个空房间
-        roomId = query.value(0).toInt();
+        roomID = query.value(0).toString();
 
         //更新房间状态
-        str = QString("updata from roomstate set State = '%1' where RoomId = '%2'")
+        stmt = QString("update roomstate set State = %1 where RoomId = '%2'")
                 .arg(0)
-                .arg(roomId);
-        query.exec(str);
+                .arg(roomID);
+        query.exec(stmt);
+        bool execed = query.exec(stmt);
+#ifdef DEBUG_DB_QUERY
+        qDebug() << "query exec: " << stmt;
+        //qDebug() << query.lastError();
+        qDebug() << "suc execed: " << execed;
+#endif
 
-        //插入房间信息
+        //插入一条初始控制信息，顺带存储userID
         int timeStamp = QDateTime::currentSecsSinceEpoch();
-        str = QString("insert into room values('%1','%2','%3','%4','%5','%6')")
-                .arg(roomId)
-                .arg(json[JSONAME_USERID].toInt())
-                .arg(0)
-                .arg(0)
-                .arg(0)
-                .arg(timeStamp);
-        query.exec(str);
+        stmt = QString("insert into %1 values('%2', '%3', %4, %5, %6, %7, %8)")
+                .arg(DBNAME_TABLE_ROOM)
+                .arg(roomID)
+                .arg(json[JSONAME_USERID].toString())
+                .arg("NULL")
+                .arg("NULL")
+                .arg("NULL")
+                .arg(timeStamp)
+                .arg("NULL");
+        query.exec(stmt);
+        execed = query.exec(stmt);
+#ifdef DEBUG_DB_QUERY
+        qDebug() << "query exec: " << stmt;
+        //qDebug() << query.lastError();
+        qDebug() << "suc execed: " << execed;
+#endif
     }
 
     //获取到了房间
-    if(roomId != -1)
+    if(roomID != -1)
     {
-        msg[JSONAME_ROOMID] = roomId;
+        msg[JSONAME_ROOMID] = roomID;
         msg[JSONAME_USERID] = json[JSONAME_USERID];
     }
-    else qDebug() << "no free room";
+    else
+    {
+        qDebug() << "no free room"; //没有获取到房间
+    }
 
     auto jsonString = jsonobj2string(msg);
     return jsonString;
@@ -354,13 +422,13 @@ void Console::connectMySQL()
     db = QSqlDatabase::addDatabase("QODBC");
     db.setHostName(DB_ADDR);
     db.setPort(DB_PORT);
-    db.setDatabaseName(DB_DATABASE_NAME);
+    db.setDatabaseName(DBNAME_DATABASE);
     QTextStream qin(stdin);
     QString buf;
     //qin >> buf;
     db.setUserName("root");
     //qin >> buf;
-    db.setPassword("Battle126");
+    db.setPassword("");
 
     if(!db.open())
     {

@@ -1,7 +1,8 @@
 #ifndef ROOM_H
 #define ROOM_H
 
-#include <QMainWindow>
+#include <QWidget>
+
 #include <QTimer>
 #include <QString>
 
@@ -28,19 +29,20 @@ const int VALMIN_WNDSPD = 0;
 const int INTERVAL_IMMEDIATE = 1;
 const int INTERVAL_RECONNECT = 3000;
 const int INTERVAL_SYNCCONTROLINFO = 3000;
-const int INTERVAL_GETPRICE = 30000;
+const int INTERVAL_GETPRICE = 5000;
 
 #define DEBUG
 #ifdef DEBUG
+    #define DEBUG_RCV_CONTENT
     #define DEBUG_CONNECTION
     #define DEBUG_TIMER
 #endif
 
-QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
-QT_END_NAMESPACE
+namespace Ui {
+class Room;
+}
 
-class Room : public QMainWindow
+class Room : public QWidget
 {
     Q_OBJECT
 
@@ -49,12 +51,12 @@ public:
     ~Room();
 
 private:
+    Ui::Room *ui;
+
+private:
     QTimer* timerReconnect;
     QTimer* timerSendControlInfo;
     QTimer* timerGetPrice;
-
-public:
-    Ui::MainWindow *ui;
 
 private:
     QWebSocket* sock;
@@ -82,4 +84,5 @@ private:
 
     void updateUI();
 };
+
 #endif // ROOM_H

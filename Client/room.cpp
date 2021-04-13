@@ -19,8 +19,8 @@ struct AirData
 struct syncInfo
 {
     int type;
-    int roomID;
-    int userID;
+    QString roomID;
+    QString userID;
     AirData airdata;
 };
 
@@ -49,8 +49,8 @@ void Room::sendMsg(int type)
     case 0:
     case 2:
     {
-        json[JSONAME_ROOMID] = currState.roomID;
-        json[JSONAME_USERID] = currState.userID;
+        json[JSONAME_ROOMID] = svRoomID;
+        json[JSONAME_USERID] = svUserID;
 
         json[JSONAME_POWER] = currState.airdata.power;
         QJsonObject jsonAirData;
@@ -88,12 +88,16 @@ void Room::onConnected()
 #ifdef DEBUG_CONNECTION
     qDebug() << "connected";
 #endif
+
+    //连接成功时，获取userID
+    sendMsg(1);
 }
 
 void Room::onDisconnect()
 {
     isConnected = false;
     timerReconnect->start(INTERVAL_RECONNECT);
+    timerGetPrice->stop();
 #ifdef DEBUG_CONNECTION
     qDebug() << "disconnected";
 #endif
@@ -122,6 +126,9 @@ void Room::rcvType2(const QJsonObject& json)
 void Room::onMsgRcv(const QString& msg)
 {
     auto json = string2jsonobj(msg);
+#ifdef DEBUG_RCV_CONTENT
+    qDebug() << "rcv: " << msg;
+#endif
 
     //process
     switch(json[JSONAME_TYPE].toInt())
@@ -165,8 +172,8 @@ void Room::updateUI()
 }
 
 Room::Room(QString ip, int port, QString room,  QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow),
+    QWidget(parent),
+    ui(new Ui::Room),
     sock(new QWebSocket()),
     isConnected(false),
     isControlInfoEditted(false),
@@ -192,7 +199,11 @@ Room::Room(QString ip, int port, QString room,  QWidget *parent) :
 #ifdef DEBUG_TIMER
         qDebug() << "timerSendControlInfo triggered";
 #endif
-        if(isControlInfoEditted) sendMsg(1);
+        //由于该版本每5s同步一次控制信息
+        //暂时不需要此功能
+        //if(isControlInfoEditted) sendMsg(2);
+        isControlInfoEditted = false;
+        timerSendControlInfo->stop();
     });
 
     //timerGetPrice

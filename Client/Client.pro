@@ -19,14 +19,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
+    reception.cpp \
     room.cpp
 
 HEADERS += \
     mainwindow.h \
+    reception.h \
     room.h
 
 FORMS += \
     mainwindow.ui \
+    reception.ui \
     room.ui
 
 # Default rules for deployment.

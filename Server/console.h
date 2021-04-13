@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QDateTime>
+
 #define JSONAME_TYPE "MsgType"
 #define JSONAME_ROOMID "RoomId"
 #define JSONAME_USERID "UserId"
@@ -31,13 +32,23 @@
 #define JSONAME_ISON "IsOn"
 #define JSONAME_ALL "AllRecord"
 
+#define DBNAME_DATABASE "hotel"
+
+#define DBNAME_TABLE_ROOM "room"
+#define DBNAME_FIELD_RID "Roomid"
+#define DBNAME_FIELD_UID "UserId"
+#define DBNAME_FIELD_WNDSPD "WindSpeed"
+#define DBNAME_FIELD_TEMP "tempture"
+#define DBNAME_FIELD_POWER "AirState"
+#define DBNAME_FIELD_TIME "Time"
+#define DBNAME_FIELD_MODE "Mode"
+
+#define DBNAME_TABLE_ROOMSTATE "roomstate"
+#define DBNAME_FIELD_RID2 "RoomId"
+#define DBNAME_FIELD_STATE "State"
 
 #define DB_ADDR "127.0.0.1"
-//#define DB_ADDR "10.128.248.29"
 #define DB_PORT 3306
-#define DB_DATABASE_NAME "hotel"
-//#define DB_DATABASE_NAME "hotelinfo"
-#define DB_TABLE_NAME "room"
 
 #define DEBUG
 #ifdef DEBUG

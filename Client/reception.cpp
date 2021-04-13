@@ -1,0 +1,76 @@
+#include "reception.h"
+#include "ui_reception.h"
+
+inline QJsonObject Reception::string2jsonobj(const QString& str)
+{
+    return QJsonDocument::fromJson(str.toLocal8Bit().data()).object();
+}
+
+inline QString Reception::jsonobj2string(const QJsonObject& obj)
+{
+    return QString(QJsonDocument(obj).toJson());
+}
+
+void Reception::onConnected()
+{
+    ui->plainTextInfo->appendPlainText("connected\n");
+}
+
+void Reception::onDisconnect()
+{
+    ui->plainTextInfo->appendPlainText("disconnected\n");
+}
+
+void Reception::onMsgRcv(const QString& msg)
+{
+    auto json = string2jsonobj(msg);
+
+    int opt = json["MsgType"].toInt();
+    switch (opt)
+    {
+    case 3:
+    {
+        ui->plainTextInfo->appendPlainText("成功开房！");
+        QString roomID = json["RoomId"].toString();
+        QString userID = json["UserId"].toString();
+        ui->plainTextInfo->appendPlainText(QString("顾客%1的房间号为：%2\n").arg(userID).arg(roomID));
+    }
+    }
+}
+
+void Reception::connectSrv(QString ip, int port)
+{
+    QString path = QString("ws://%1:%2").arg(ip).arg(port);
+    QUrl url = QUrl(path);
+
+    sock->open(url);
+}
+
+Reception::Reception(QString ip, int port, QWidget* parent) :
+    QWidget(parent),
+    ui(new Ui::Reception),
+    sock(new QWebSocket())
+{
+    ui->setupUi(this);
+
+    //socket
+    connect(sock, &QWebSocket::connected, this, &Reception::onConnected);
+    connect(sock, &QWebSocket::disconnected, this, &Reception::onDisconnect);
+    connect(sock, &QWebSocket::textMessageReceived, this, &Reception::onMsgRcv);
+    connectSrv(ip, port);
+
+    connect(ui->pushButtonCheckIn, &QPushButton::clicked, [=](){
+        QJsonObject json;
+        json["MsgType"] = 3;
+        json["UserId"] = ui->lineEditCheckIn->text();
+        jsonobj2string(json);
+
+        auto jsonString = jsonobj2string(json);
+        sock->sendTextMessage(jsonString);
+    });
+}
+
+Reception::~Reception()
+{
+    delete ui;
+}
