@@ -5,19 +5,21 @@
 
 #include <QWebSocket>
 #include <QWebSocketServer>
+#include <QMap>
 
 #include <QSqlDatabase>
 #include <QSqlQuery>
 
 #include <QJsonObject>
 #include <QJsonDocument>
-#include<QDateTime>
+#include <QDateTime>
 #define JSONAME_TYPE "MsgType"
 #define JSONAME_ROOMID "RoomId"
 #define JSONAME_USERID "UserId"
 #define JSONAME_WNDSPD "WindSpeed"
 #define JSONAME_TEMP "Temp"
 #define JSONAME_MODE "Mode"
+#define JSONAME_POWER "TurnOnOff"
 #define JSONAME_AIRDATA "AirData"
 #define JSONAME_ACK "Ack"
 #define JSONAME_MONEY "Money"
@@ -50,6 +52,14 @@
     #define DEBUG_DB_ERR
 #endif
 
+struct userInfo
+{
+    QString roomID;
+    QString userID;
+
+    userInfo(QString rid, QString uid) : roomID(rid), userID(uid) {};
+};
+
 class Console : public QObject
 {
     Q_OBJECT
@@ -63,7 +73,8 @@ private:
     QString jsonobj2string(const QJsonObject& obj);
 
 private:
-    QString ProcessType1(const QJsonObject& json);
+    QString ProcessType0(const QJsonObject& json);
+    QString ProcessType1(const QJsonObject& json, QString&);
     QString ProcessType2(const QJsonObject& json);
     QString ProcessType3(const QJsonObject& json);
     QString ProcessType4(const QJsonObject& json);
@@ -71,17 +82,19 @@ private:
     QString ProcessType6(const QJsonObject& json);
     QString ProcessType7(const QJsonObject& json);
     QString ProcessType8(const QJsonObject& json);
-    int ComputeMoney(const QJsonObject& json);
+    int getPriceCost(const QJsonObject& json);
+
 private:
     void onNewConnection();
     void onDisconnect();
     void process(const QString&);
     QWebSocketServer* sock;
     QList<QWebSocket*> lstClt;
+    QMap<QString, userInfo> sockInfo;
+
 private:
     void connectMySQL();
     QSqlDatabase db;
-    QDateTime time;
 };
 
 
