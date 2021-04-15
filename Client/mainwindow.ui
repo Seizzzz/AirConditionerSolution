@@ -75,6 +75,12 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="minimumSize">
+     <size>
+      <width>0</width>
+      <height>3</height>
+     </size>
+    </property>
     <property name="text">
      <string>经理</string>
     </property>

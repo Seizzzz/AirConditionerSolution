@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Admin</class>
+ <widget class="QWidget" name="Admin">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>431</width>
+    <height>357</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <widget class="QTableWidget" name="tableWidget">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>20</y>
+     <width>391</width>
+     <height>271</height>
+    </rect>
+   </property>
+   <attribute name="horizontalHeaderDefaultSectionSize">
+    <number>70</number>
+   </attribute>
+   <column>
+    <property name="text">
+     <string>房间号</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>开关</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>模式</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>温度</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>风速</string>
+    </property>
+   </column>
+  </widget>
+  <widget class="QLineEdit" name="lineEditShutRoom">
+   <property name="geometry">
+    <rect>
+     <x>200</x>
+     <y>310</y>
+     <width>113</width>
+     <height>20</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButtonShut">
+   <property name="geometry">
+    <rect>
+     <x>330</x>
+     <y>310</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>强制关机</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="labelShut">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>320</y>
+     <width>54</width>
+     <height>12</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>房间号：</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

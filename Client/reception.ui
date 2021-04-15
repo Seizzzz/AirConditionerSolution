@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>321</width>
-    <height>213</height>
+    <width>401</width>
+    <height>471</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,7 +16,7 @@
   <widget class="QPushButton" name="pushButtonCheckIn">
    <property name="geometry">
     <rect>
-     <x>220</x>
+     <x>250</x>
      <y>30</y>
      <width>75</width>
      <height>23</height>
@@ -29,7 +29,7 @@
   <widget class="QPushButton" name="pushButtonCheckOut">
    <property name="geometry">
     <rect>
-     <x>220</x>
+     <x>250</x>
      <y>60</y>
      <width>75</width>
      <height>23</height>
@@ -42,7 +42,7 @@
   <widget class="QLineEdit" name="lineEditCheckOut">
    <property name="geometry">
     <rect>
-     <x>90</x>
+     <x>120</x>
      <y>60</y>
      <width>113</width>
      <height>20</height>
@@ -52,9 +52,9 @@
   <widget class="QPlainTextEdit" name="plainTextInfo">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>90</y>
-     <width>241</width>
+     <x>40</x>
+     <y>100</y>
+     <width>321</width>
      <height>111</height>
     </rect>
    </property>
@@ -62,7 +62,7 @@
   <widget class="QLineEdit" name="lineEditCheckIn">
    <property name="geometry">
     <rect>
-     <x>90</x>
+     <x>120</x>
      <y>30</y>
      <width>113</width>
      <height>20</height>
@@ -72,7 +72,7 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>60</x>
      <y>30</y>
      <width>54</width>
      <height>12</height>
@@ -85,7 +85,7 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>60</x>
      <y>60</y>
      <width>54</width>
      <height>12</height>
@@ -94,6 +94,44 @@
    <property name="text">
     <string>RoomID:</string>
    </property>
+  </widget>
+  <widget class="QTableWidget" name="tableWidget">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>230</y>
+     <width>361</width>
+     <height>231</height>
+    </rect>
+   </property>
+   <attribute name="horizontalHeaderDefaultSectionSize">
+    <number>70</number>
+   </attribute>
+   <column>
+    <property name="text">
+     <string>时间</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>开关</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>模式</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>温度</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>风速</string>
+    </property>
+   </column>
   </widget>
  </widget>
  <resources/>

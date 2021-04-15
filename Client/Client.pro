@@ -17,18 +17,24 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    admin.cpp \
     main.cpp \
     mainwindow.cpp \
+    manager.cpp \
     reception.cpp \
     room.cpp
 
 HEADERS += \
+    admin.h \
     mainwindow.h \
+    manager.h \
     reception.h \
     room.h
 
 FORMS += \
+    admin.ui \
     mainwindow.ui \
+    manager.ui \
     reception.ui \
     room.ui
 
