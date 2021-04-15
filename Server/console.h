@@ -93,7 +93,7 @@ private:
     QString ProcessType6(const QJsonObject& json);
     QString ProcessType7(const QJsonObject& json);
     QString ProcessType8(const QJsonObject& json);
-    int getPriceCost(const QJsonObject& json);
+    double getPriceCost(const QJsonObject& json);
 
 private:
     void onNewConnection();

@@ -35,6 +35,13 @@ void Reception::onMsgRcv(const QString& msg)
         QString userID = json["UserId"].toString();
         ui->plainTextInfo->appendPlainText(QString("顾客%1的房间号为：%2\n").arg(userID).arg(roomID));
     }
+    case 4:
+    {
+        ui->plainTextInfo->appendPlainText("成功退房！");
+        QString roomID = json["RoomId"].toString();
+        QString userID = json["UserId"].toString();
+        ui->plainTextInfo->appendPlainText(QString("退房顾客%1的房间号为：%2\n").arg(userID).arg(roomID));
+    }
     }
 }
 
@@ -63,6 +70,17 @@ Reception::Reception(QString ip, int port, QWidget* parent) :
         QJsonObject json;
         json["MsgType"] = 3;
         json["UserId"] = ui->lineEditCheckIn->text();
+        jsonobj2string(json);
+
+        auto jsonString = jsonobj2string(json);
+        sock->sendTextMessage(jsonString);
+    });
+
+    connect(ui->pushButtonCheckOut, &QPushButton::clicked, [=](){
+        QJsonObject json;
+        json["MsgType"] = 4;
+        //json["Roomid"] = ui->lineEditCheckIn->text();
+        json["RoomId"] = ui->lineEditCheckOut->text();
         jsonobj2string(json);
 
         auto jsonString = jsonobj2string(json);

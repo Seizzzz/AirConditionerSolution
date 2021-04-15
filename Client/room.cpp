@@ -24,7 +24,7 @@ struct syncInfo
     AirData airdata;
 };
 
-static int PriceCost;
+static double PriceCost;
 static syncInfo lastState;
 static syncInfo currState;
 
@@ -51,13 +51,13 @@ void Room::sendMsg(int type)
     {
         json[JSONAME_ROOMID] = svRoomID;
         json[JSONAME_USERID] = svUserID;
-
         json[JSONAME_POWER] = currState.airdata.power;
         QJsonObject jsonAirData;
         jsonAirData[JSONAME_TEMP] = currState.airdata.temp;
         jsonAirData[JSONAME_WNDSPD] = currState.airdata.wndspd;
         jsonAirData[JSONAME_MODE] = currState.airdata.mode;
-        json[JSONAME_AIRDATA] = jsonobj2string(jsonAirData);
+        //json[JSONAME_AIRDATA] = jsonobj2string(jsonAirData);
+        json.insert(JSONAME_AIRDATA, jsonAirData);
 
         //与服务端同步控制信息
         //关闭定时器
@@ -120,7 +120,7 @@ void Room::rcvType2(const QJsonObject& json)
     }
 
     //获取当前账单金额
-    PriceCost = json[JSONAME_MONEY].toInt();
+    PriceCost = json[JSONAME_MONEY].toDouble();
 }
 
 void Room::onMsgRcv(const QString& msg)
@@ -212,7 +212,7 @@ Room::Room(QString ip, int port, QString room,  QWidget *parent) :
 #ifdef DEBUG_TIMER
         qDebug() << "timerGetPrice triggered";
 #endif
-        sendMsg(2);
+        if(currState.airdata.power) sendMsg(2);
         timerGetPrice->start(INTERVAL_GETPRICE);
     });
 
@@ -227,7 +227,8 @@ Room::Room(QString ip, int port, QString room,  QWidget *parent) :
         lastState = currState;
         currState.airdata.power = !currState.airdata.power;
         isControlInfoEditted = true;
-        timerSendControlInfo->start(INTERVAL_IMMEDIATE);
+        //timerSendControlInfo->start(INTERVAL_IMMEDIATE);
+        sendMsg(0);
 
         updateUI();
     });

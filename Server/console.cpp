@@ -50,11 +50,11 @@ void Console::onDisconnect()
 }
 
 //从数据库查询指定roomID、userID的金额
-int Console::getPriceCost(const QJsonObject& json){
+double Console::getPriceCost(const QJsonObject& json){
     QSqlQuery query(db);
 
-    int money = 0;
-    QString str = QString("select * from %1 where %2 = %3 and %4 = %5")
+    double money = 0;
+    QString str = QString("select * from %1 where %2 = %3 and %4 = '%5'")
             .arg(DBNAME_TABLE_ROOM)
             .arg(DBNAME_FIELD_RID)
             .arg(json[JSONAME_ROOMID].toString())
@@ -67,7 +67,6 @@ int Console::getPriceCost(const QJsonObject& json){
     qDebug() << "query exec: " << str;
     //qDebug() << query.lastError();
     qDebug() << "suc execed: " << execed;
-    qDebug() << "number:" << query.size();
 #endif
 
     int subtime = 0, temp_time;
@@ -99,7 +98,8 @@ QString Console::ProcessType0(const QJsonObject& json)
 {
     QJsonObject msg;
     msg[JSONAME_TYPE] = 0;
-    int isPowerOn = msg[JSONAME_POWER].toInt();
+
+    int isPowerOn = json[JSONAME_POWER].toInt();
 
     //插入开关的控制信息
     QSqlQuery query(db);
@@ -120,8 +120,8 @@ QString Console::ProcessType0(const QJsonObject& json)
     qDebug() << "suc execed: " << execed;
 #endif
 
-    if(execed) msg[JSONAME_ACK] = true;
-    else msg[JSONAME_ACK] = false;
+    //if(execed) msg[JSONAME_ACK] = true;
+    //else msg[JSONAME_ACK] = false;
 
     auto jsonString = jsonobj2string(msg);
     return jsonString;
@@ -170,15 +170,15 @@ QString Console::ProcessType2(const QJsonObject& json)
     QJsonObject msg;
     msg[JSONAME_TYPE] = 2;
 
-    auto jsonAirData = string2jsonobj(json[JSONAME_AIRDATA].toString());
+    auto jsonAirData = json[JSONAME_AIRDATA];
     //判断控制信息改变是否合法
     int wantedTemp = jsonAirData[JSONAME_TEMP].toInt();
     int wantedWndSpd = jsonAirData[JSONAME_WNDSPD].toInt();
-    if(wantedTemp > 30 || wantedTemp < 15 || wantedWndSpd > 3 || wantedWndSpd < 0)
-        msg[JSONAME_ACK] = false;
+    if(wantedTemp > 30 || wantedTemp < 15 || wantedWndSpd > 3 || wantedWndSpd < 0);
+        //msg[JSONAME_ACK] = false;
     else
     {
-        msg[JSONAME_ACK] = true;
+        //msg[JSONAME_ACK] = true;
 
         //将合法的控制信息保存到数据库中
         QSqlQuery query(db);
@@ -189,7 +189,7 @@ QString Console::ProcessType2(const QJsonObject& json)
                 .arg(json[JSONAME_USERID].toString())
                 .arg(jsonAirData[JSONAME_WNDSPD].toInt())
                 .arg(jsonAirData[JSONAME_TEMP].toInt())
-                .arg(jsonAirData[JSONAME_POWER].toInt())
+                .arg(json[JSONAME_POWER].toInt())
                 .arg(timeStamp)
                 .arg(jsonAirData[JSONAME_MODE].toInt());
         bool execed = query.exec(stmt);
@@ -201,7 +201,7 @@ QString Console::ProcessType2(const QJsonObject& json)
     }
 
     //获取金额
-    int money = getPriceCost(json);
+    double money = getPriceCost(json);
     msg[JSONAME_MONEY] = money;
 
     auto jsonString = jsonobj2string(msg);
@@ -221,7 +221,6 @@ QString Console::ProcessType3(const QJsonObject& json)
             .arg(DBNAME_TABLE_ROOMSTATE)
             .arg(DBNAME_FIELD_STATE)
             .arg(1);
-    query.exec(stmt);
     bool execed = query.exec(stmt);
 #ifdef DEBUG_DB_QUERY
     qDebug() << "query exec: " << stmt;
@@ -239,7 +238,6 @@ QString Console::ProcessType3(const QJsonObject& json)
         stmt = QString("update roomstate set State = %1 where RoomId = '%2'")
                 .arg(0)
                 .arg(roomID);
-        query.exec(stmt);
         bool execed = query.exec(stmt);
 #ifdef DEBUG_DB_QUERY
         qDebug() << "query exec: " << stmt;
@@ -258,7 +256,6 @@ QString Console::ProcessType3(const QJsonObject& json)
                 .arg("NULL")
                 .arg(timeStamp)
                 .arg("NULL");
-        query.exec(stmt);
         execed = query.exec(stmt);
 #ifdef DEBUG_DB_QUERY
         qDebug() << "query exec: " << stmt;
@@ -268,7 +265,7 @@ QString Console::ProcessType3(const QJsonObject& json)
     }
 
     //获取到了房间
-    if(roomID != -1)
+    if(roomID != "UNDEFINED")
     {
         msg[JSONAME_ROOMID] = roomID;
         msg[JSONAME_USERID] = json[JSONAME_USERID];
@@ -284,29 +281,41 @@ QString Console::ProcessType3(const QJsonObject& json)
 
 
 //退房、获取详单
-QString Console::ProcessType4(const QJsonObject& json){
+QString Console::ProcessType4(const QJsonObject& json)
+{
     QJsonObject msg;
     msg[JSONAME_TYPE] = 4;
 
     QSqlQuery query(db);
 
-    //更新房间空闲状态
-    QString str = QString("update from roomstate set State = '%1' where RoomId = '%2'")
+    //update roomstate
+    QString str = QString("update roomstate set State = %1 where RoomId = %2")
             .arg(1)
-            .arg(json[JSONAME_ROOMID].toInt());
-    query.exec(str);
-
-    if(query.next()) { //退房成功
-        //更新房间信息
+            .arg(json[JSONAME_ROOMID].toString());
+    bool execed = query.exec(str);
+#ifdef DEBUG_DB_QUERY
+    qDebug() << "query exec: " << str;
+    //qDebug() << query.lastError();
+    qDebug() << "suc execed: " << execed;
+#endif
+    if(execed) { //check out
+        //update room table
         int timeStamp = QDateTime::currentSecsSinceEpoch();
-        str = QString("insert into room values('%1','%2','%3','%4','%5','%6')")
-                .arg(json[JSONAME_ROOMID].toInt())
-                .arg(json[JSONAME_USERID].toInt())
+        str = QString("insert into %1 values(%2, '%3', %4, %5, %6, %7, %8)")
+                .arg(DBNAME_TABLE_ROOM)
+                .arg(json[JSONAME_ROOMID].toString())
+                .arg("000000000000")
                 .arg(0)
-                .arg(0)
-                .arg(0)
-                .arg(timeStamp);
-        query.exec(str);
+                .arg(23)
+                .arg(1)
+                .arg(timeStamp)
+                .arg(0);
+        bool execed = query.exec(str);
+        #ifdef DEBUG_DB_QUERY
+            qDebug() << "query exec: " << str;
+            //qDebug() << query.lastError();
+            qDebug() << "suc execed: " << execed;
+        #endif
     }
 
     str = QString("select * from room where RoomId = '%1' and UserId = '%2'"
@@ -372,6 +381,9 @@ void Console::process(const QString& msg)
     QString jsonRet;
     switch(opt)
     {
+    case 0:
+        jsonRet = ProcessType0(json);
+        break;
     case 1:
         jsonRet = ProcessType1(json, ident);
         break;
