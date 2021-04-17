@@ -21,7 +21,8 @@ SOURCES += \
         main.cpp
 
 HEADERS += \
-    console.h
+    console.h \
+    tools.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -4,18 +4,22 @@
 
 inline QString getIdentifier(QWebSocket* peer)
 {
-    return QStringLiteral("%1 %2").arg(peer->peerAddress().toString()).arg(QString::number(peer->peerPort()));
+    return QStringLiteral("%1:%2").arg(peer->peerAddress().toString()).arg(QString::number(peer->peerPort()));
 }
 
-inline QJsonObject Console::string2jsonobj(const QString& str)
-{
-    return QJsonDocument::fromJson(str.toLocal8Bit().data()).object();
-}
+//inline QJsonObject Console::string2jsonobj(const QString& str)
+//{
+//    //return QJsonDocument::fromJson(str.toLocal8Bit().data()).object();
 
-inline QString Console::jsonobj2string(const QJsonObject& obj)
-{
-    return QString(QJsonDocument(obj).toJson());
-}
+//    return QJsonDocument::fromJson(str.toUtf8()).object();
+//}
+
+//inline QString Console::jsonobj2string(const QJsonObject& obj)
+//{
+//    //return QString(QJsonDocument(obj).toJson());
+
+//    return QString(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+//}
 
 void Console::onNewConnection()
 {
@@ -120,8 +124,8 @@ QString Console::ProcessType0(const QJsonObject& json)
     qDebug() << "suc execed: " << execed;
 #endif
 
-    //if(execed) msg[JSONAME_ACK] = true;
-    //else msg[JSONAME_ACK] = false;
+    //todo
+    msg[JSONAME_ACK] = true;
 
     auto jsonString = jsonobj2string(msg);
     return jsonString;

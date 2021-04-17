@@ -14,6 +14,8 @@
 #include <QJsonDocument>
 #include <QDateTime>
 
+#include "tools.h"
+
 #define JSONAME_TYPE "MsgType"
 #define JSONAME_ROOMID "RoomId"
 #define JSONAME_USERID "UserId"
@@ -79,9 +81,9 @@ public:
     explicit Console(quint16 port, QObject* parent = nullptr);
     ~Console();
 
-private:
-    QJsonObject string2jsonobj(const QString& str);
-    QString jsonobj2string(const QJsonObject& obj);
+//private:
+//    QJsonObject string2jsonobj(const QString& str);
+//    QString jsonobj2string(const QJsonObject& obj);
 
 private:
     QString ProcessType0(const QJsonObject& json);
