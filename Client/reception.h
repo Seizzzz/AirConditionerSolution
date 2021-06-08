@@ -8,6 +8,8 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+#include "../tools.h"
+
 namespace Ui {
 class Reception;
 }
@@ -29,10 +31,6 @@ private:
     void onConnected();
     void onDisconnect();
     void onMsgRcv(const QString&);
-
-private:
-    QJsonObject string2jsonobj(const QString& str);
-    QString jsonobj2string(const QJsonObject& obj);
 };
 
 #endif // RECEPTION_H

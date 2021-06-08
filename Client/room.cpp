@@ -24,19 +24,9 @@ struct syncInfo
     AirData airdata;
 };
 
+static double FeeRate;
 static double PriceCost;
-static syncInfo lastState;
 static syncInfo currState;
-
-inline QJsonObject Room::string2jsonobj(const QString& str)
-{
-    return QJsonDocument::fromJson(str.toLocal8Bit().data()).object();
-}
-
-inline QString Room::jsonobj2string(const QJsonObject& obj)
-{
-    return QString(QJsonDocument(obj).toJson());
-}
 
 void Room::sendMsg(int type)
 {
@@ -45,8 +35,14 @@ void Room::sendMsg(int type)
     json[JSONAME_TYPE] = type;
     switch(type)
     {
-    //这里对开机与状态信息的改变进行了合并
     case 0:
+        break;
+
+    case 1:
+        //发送RoomID以获取UserID
+        json[JSONAME_ROOMID] = svRoomID;
+        break;
+
     case 2:
     {
         json[JSONAME_ROOMID] = svRoomID;
@@ -58,19 +54,6 @@ void Room::sendMsg(int type)
         jsonAirData[JSONAME_MODE] = currState.airdata.mode;
         //json[JSONAME_AIRDATA] = jsonobj2string(jsonAirData);
         json.insert(JSONAME_AIRDATA, jsonAirData);
-
-        //与服务端同步控制信息
-        //关闭定时器
-        isControlInfoEditted = false;
-        timerSendControlInfo->stop();
-
-        break;
-    }
-
-    case 1:
-    {
-        //发送RoomID以获取UserID
-        json[JSONAME_ROOMID] = svRoomID;
 
         break;
     }
@@ -84,42 +67,71 @@ void Room::onConnected()
 {
     isConnected = true;
     timerReconnect->stop();
-    timerGetPrice->start(INTERVAL_GETPRICE);
 #ifdef DEBUG_CONNECTION
     qDebug() << "connected";
 #endif
 
-    //连接成功时，获取userID
-    sendMsg(1);
+    ui->labelWelcomeErr->setText("已连接至服务端");
+    ui->labelWelcomeErr->setStyleSheet("color: green");
 }
 
 void Room::onDisconnect()
 {
     isConnected = false;
     timerReconnect->start(INTERVAL_RECONNECT);
-    timerGetPrice->stop();
 #ifdef DEBUG_CONNECTION
     qDebug() << "disconnected";
 #endif
+
+    ui->stackedWidget->setCurrentIndex(0);
+
+    ui->labelWelcomeErr->setText("无法连接至服务端");
+    ui->labelWelcomeErr->setStyleSheet("color: red");
 }
 
+//开机返回包
+void Room::rcvType0(const QJsonObject& json)
+{
+    currState.airdata.mode = json[JSONAME_MODE].toInt();
+    currState.airdata.wndspd = json[JSONAME_WNDSPD].toInt();
+    currState.airdata.temp = json[JSONAME_DEFAULTEMP].toInt();
+    FeeRate = json[JSONAME_FEERATE].toDouble();
+}
+
+//获取UserID
 void Room::rcvType1(const QJsonObject& json)
 {
-    //获取UserID
     svUserID = json[JSONAME_USERID].toString();
+    if(svUserID != "-1")
+        ui->stackedWidget->setCurrentIndex(1);
+    else
+    {
+        ui->labelWelcomeErr->setText("未成功获取到房间信息，请联系前台");
+        ui->labelWelcomeErr->setStyleSheet("color: red");
+    }
 }
 
+//改变风速返回包
 void Room::rcvType2(const QJsonObject& json)
 {
-    //这是一个旧功能，用于确认服务端是否认可状态改变
-    //出于潜在的安全性欠缺的考虑，该版本没有舍弃该功能
-    if(!json[JSONAME_ACK].isUndefined())
-    {
-        if(json[JSONAME_ACK].toBool()); //成功改变，无需额外操作
-        else currState = lastState; //退回上一次成功的状态
-    }
+    FeeRate = json[JSONAME_FEERATE].toDouble();
+}
 
-    //获取当前账单金额
+//改变温度返回包
+void Room::rcvType3(const QJsonObject& json)
+{
+    currState.airdata.mode = json[JSONAME_TEMP].toInt();
+}
+
+//改变模式返回包
+void Room::rcvType4(const QJsonObject& json)
+{
+    currState.airdata.mode = json[JSONAME_MODE].toInt();
+}
+
+//关机返回包
+void Room::rcvType13(const QJsonObject& json)
+{
     PriceCost = json[JSONAME_MONEY].toDouble();
 }
 
@@ -133,16 +145,29 @@ void Room::onMsgRcv(const QString& msg)
     //process
     switch(json[JSONAME_TYPE].toInt())
     {
+    case 0:
+        rcvType0(json);
+        break;
+
     case 1:
-    {
         rcvType1(json);
         break;
-    }
+
     case 2:
-    {
         rcvType2(json);
         break;
-    }
+
+    case 3:
+        rcvType3(json);
+        break;
+
+    case 4:
+        rcvType4(json);
+        break;
+
+    case 13:
+        rcvType13(json);
+        break;
     }
 
     //update ui
@@ -157,6 +182,11 @@ void Room::connectSrv(QString ip, int port)
     sock->open(url);
 }
 
+void Room::reqEnter()
+{
+    sendMsg(1);
+}
+
 void Room::updateUI()
 {
     if(currState.airdata.power)
@@ -169,6 +199,7 @@ void Room::updateUI()
     ui->LCDTemp->display(currState.airdata.temp);
     ui->LCDWndspd->display(currState.airdata.wndspd);
     ui->labelCostValue->setText(QString::number(PriceCost));
+    ui->labelFeeValue->setText(QString::number(FeeRate));
 }
 
 Room::Room(QString ip, int port, QString room,  QWidget *parent) :
@@ -176,10 +207,15 @@ Room::Room(QString ip, int port, QString room,  QWidget *parent) :
     ui(new Ui::Room),
     sock(new QWebSocket()),
     isConnected(false),
-    isControlInfoEditted(false),
     svRoomID(room)
 {
+    //关闭窗口时析构
+    setAttribute(Qt::WA_DeleteOnClose);
+
+    //init ui
     ui->setupUi(this);
+    ui->labelRoomID->setText(room);
+    ui->stackedWidget->setCurrentIndex(0);
 
     //timerReconnect
     timerReconnect = new QTimer(this);
@@ -193,106 +229,63 @@ Room::Room(QString ip, int port, QString room,  QWidget *parent) :
         if(!isConnected) connectSrv(ip, port);
     });
 
-    //timerSendControlInfo
-    timerSendControlInfo = new QTimer(this);
-    connect(timerSendControlInfo, &QTimer::timeout, [=](){
-#ifdef DEBUG_TIMER
-        qDebug() << "timerSendControlInfo triggered";
-#endif
-        //由于该版本每5s同步一次控制信息
-        //暂时不需要此功能
-        //if(isControlInfoEditted) sendMsg(2);
-        isControlInfoEditted = false;
-        timerSendControlInfo->stop();
-    });
-
-    //timerGetPrice
-    timerGetPrice = new QTimer(this);
-    connect(timerGetPrice, &QTimer::timeout, [=](){
-#ifdef DEBUG_TIMER
-        qDebug() << "timerGetPrice triggered";
-#endif
-        if(currState.airdata.power) sendMsg(2);
-        timerGetPrice->start(INTERVAL_GETPRICE);
-    });
-
     //socket
     connect(sock, &QWebSocket::connected, this, &Room::onConnected);
     connect(sock, &QWebSocket::disconnected, this, &Room::onDisconnect);
     connect(sock, &QWebSocket::textMessageReceived, this, &Room::onMsgRcv);
     connectSrv(ip, port);
 
+    //welcome page
+    connect(ui->pushButtonWelcome, &QPushButton::clicked, [=](){
+        reqEnter();
+    });
+    connect(ui->stackedWidget, &QStackedWidget::currentChanged, [=](){
+        qDebug() << "fuck";
+    });
+
     //adjust power
     connect(ui->pushButtonPower, &QPushButton::clicked, [=](){
-        lastState = currState;
         currState.airdata.power = !currState.airdata.power;
-        isControlInfoEditted = true;
-        //timerSendControlInfo->start(INTERVAL_IMMEDIATE);
-        sendMsg(0);
 
+        if(currState.airdata.power) sendMsg(0); //发送开机
+        else sendMsg(13); //发送关机
         updateUI();
     });
 
     //adjust mode
     connect(ui->pushButtonMode, &QPushButton::clicked, [=](){
-        lastState = currState;
         currState.airdata.mode = !currState.airdata.mode;
-        isControlInfoEditted = true;
-        timerSendControlInfo->start(INTERVAL_IMMEDIATE);
 
+        sendMsg(4);
         updateUI();
     });
 
     //adjust temp
     connect(ui->pushButtonTempUp, &QPushButton::clicked, [=](){
-        if(VALMAX_TEMP < currState.airdata.temp + 1 || currState.airdata.temp + 1 < VALMIN_TEMP);
-        else
-        {
-            if(!isControlInfoEditted) lastState = currState;
-            ++currState.airdata.temp;
-            isControlInfoEditted = true;
-            timerSendControlInfo->start(INTERVAL_SYNCCONTROLINFO);
+        ++currState.airdata.temp;
 
-            updateUI();
-        }
+        sendMsg(3);
+        updateUI();
     });
     connect(ui->pushButtonTempDown, &QPushButton::clicked, [=](){
-        if(VALMAX_TEMP < currState.airdata.temp - 1 || currState.airdata.temp - 1 < VALMIN_TEMP);
-        else
-        {
-            if(!isControlInfoEditted) lastState = currState;
-            --currState.airdata.temp;
-            isControlInfoEditted = true;
-            timerSendControlInfo->start(INTERVAL_SYNCCONTROLINFO);
+        --currState.airdata.temp;
 
-            updateUI();
-        }
+        sendMsg(3);
+        updateUI();
     });
 
     //adjust wndspd
     connect(ui->pushButtonWndspdUp, &QPushButton::clicked, [=](){
-        if(VALMAX_WNDSPD < currState.airdata.wndspd + 1 || currState.airdata.wndspd + 1 < VALMIN_WNDSPD);
-        else
-        {
-            if(!isControlInfoEditted) lastState = currState;
-            ++currState.airdata.wndspd;
-            isControlInfoEditted = true;
-            timerSendControlInfo->start(INTERVAL_SYNCCONTROLINFO);
+        ++currState.airdata.wndspd;
 
-            updateUI();
-        }
+        sendMsg(2);
+        updateUI();
     });
     connect(ui->pushButtonWndspdDown, &QPushButton::clicked, [=](){
-        if(VALMAX_WNDSPD < currState.airdata.wndspd - 1 || currState.airdata.wndspd - 1 < VALMIN_WNDSPD);
-        else
-        {
-            if(!isControlInfoEditted) lastState = currState;
-            --currState.airdata.wndspd;
-            isControlInfoEditted = true;
-            timerSendControlInfo->start(INTERVAL_SYNCCONTROLINFO);
+        --currState.airdata.wndspd;
 
-            updateUI();
-        }
+        sendMsg(2);
+        updateUI();
     });
 }
 

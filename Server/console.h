@@ -14,43 +14,7 @@
 #include <QJsonDocument>
 #include <QDateTime>
 
-#include "tools.h"
-
-#define JSONAME_TYPE "MsgType"
-#define JSONAME_ROOMID "RoomId"
-#define JSONAME_USERID "UserId"
-#define JSONAME_WNDSPD "WindSpeed"
-#define JSONAME_TEMP "Temp"
-#define JSONAME_MODE "Mode"
-#define JSONAME_POWER "TurnOnOff"
-#define JSONAME_AIRDATA "AirData"
-#define JSONAME_ACK "Ack"
-#define JSONAME_MONEY "Money"
-#define JSONAME_DETAIL "CostDetail"
-#define JSONAME_STIME "TimeStart"
-#define JSONAME_ETIME "TimeEnd"
-#define JSONAME_COST "Cost"
-#define JSONAME_AIRSTATUE "AirStatus"
-#define JSONAME_ISON "IsOn"
-#define JSONAME_ALL "AllRecord"
-
-#define DBNAME_DATABASE "hotel"
-
-#define DBNAME_TABLE_ROOM "room"
-#define DBNAME_FIELD_RID "Roomid"
-#define DBNAME_FIELD_UID "UserId"
-#define DBNAME_FIELD_WNDSPD "WindSpeed"
-#define DBNAME_FIELD_TEMP "tempture"
-#define DBNAME_FIELD_POWER "AirState"
-#define DBNAME_FIELD_TIME "Time"
-#define DBNAME_FIELD_MODE "Mode"
-
-#define DBNAME_TABLE_ROOMSTATE "roomstate"
-#define DBNAME_FIELD_RID2 "RoomId"
-#define DBNAME_FIELD_STATE "State"
-
-#define DB_ADDR "127.0.0.1"
-#define DB_PORT 3306
+#include "../tools.h"
 
 #define DEBUG
 #ifdef DEBUG
@@ -65,13 +29,37 @@
     #define DEBUG_DB_ERR
 #endif
 
-struct userInfo
+struct LinkInfo
 {
     QString roomID;
     QString userID;
+    double roomTemp; //房间温度
 
-    userInfo(QString rid, QString uid) : roomID(rid), userID(uid) {};
+    int targetTemp; //目标温度
+    int targetWndSpd; //风速
+
+    LinkInfo() {
+        roomID = "";
+        userID = "";
+        roomTemp = -1;
+    }
 };
+
+struct ConfigInfo
+{
+    double FeeRateLight;
+    double FeeRateGentle;
+    double FeeRateStrong;
+
+    ConfigInfo() {
+        FeeRateLight = 0;
+        FeeRateGentle = 0;
+        FeeRateStrong = 0;
+    }
+};
+static ConfigInfo config;
+
+using InfoIter = QMap<QString, LinkInfo>::iterator;
 
 class Console : public QObject
 {
@@ -81,20 +69,14 @@ public:
     explicit Console(quint16 port, QObject* parent = nullptr);
     ~Console();
 
-//private:
-//    QJsonObject string2jsonobj(const QString& str);
-//    QString jsonobj2string(const QJsonObject& obj);
-
 private:
-    QString ProcessType0(const QJsonObject& json);
-    QString ProcessType1(const QJsonObject& json, QString&);
-    QString ProcessType2(const QJsonObject& json);
-    QString ProcessType3(const QJsonObject& json);
-    QString ProcessType4(const QJsonObject& json);
-    QString ProcessType5(const QJsonObject& json);
-    QString ProcessType6(const QJsonObject& json);
-    QString ProcessType7(const QJsonObject& json);
-    QString ProcessType8(const QJsonObject& json);
+    QString rcvType0(const QJsonObject& json, InfoIter);
+    QString rcvType1(const QJsonObject& json, InfoIter);
+    QString rcvType2(const QJsonObject& json, InfoIter);
+    QString rcvType3(const QJsonObject& json, InfoIter);
+    QString rcvType6(const QJsonObject& json);
+    QString rcvType7(const QJsonObject& json);
+    QString rcvType10();
     double getPriceCost(const QJsonObject& json);
 
 private:
@@ -103,7 +85,9 @@ private:
     void process(const QString&);
     QWebSocketServer* sock;
     QList<QWebSocket*> lstClt;
-    QMap<QString, userInfo> sockInfo;
+    QMap<QString, LinkInfo> mapLinkInfo;
+    QMap<QString, LinkInfo>::iterator getLinkInfo(QString&);
+    bool isRoomExisted(const QString&);
 
 private:
     void connectMySQL();

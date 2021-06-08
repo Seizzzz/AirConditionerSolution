@@ -2,25 +2,6 @@
 
 #include <QDebug>
 
-inline QString getIdentifier(QWebSocket* peer)
-{
-    return QStringLiteral("%1:%2").arg(peer->peerAddress().toString()).arg(QString::number(peer->peerPort()));
-}
-
-//inline QJsonObject Console::string2jsonobj(const QString& str)
-//{
-//    //return QJsonDocument::fromJson(str.toLocal8Bit().data()).object();
-
-//    return QJsonDocument::fromJson(str.toUtf8()).object();
-//}
-
-//inline QString Console::jsonobj2string(const QJsonObject& obj)
-//{
-//    //return QString(QJsonDocument(obj).toJson());
-
-//    return QString(QJsonDocument(obj).toJson(QJsonDocument::Compact));
-//}
-
 void Console::onNewConnection()
 {
     auto sockClt = sock->nextPendingConnection();
@@ -32,6 +13,9 @@ void Console::onNewConnection()
 
     connect(sockClt, &QWebSocket::textMessageReceived, this, &Console::process);
     connect(sockClt, &QWebSocket::disconnected, this, &Console::onDisconnect);
+
+    mapLinkInfo.insert(getIdentifier(sockClt), LinkInfo());
+
     lstClt << sockClt;
 }
 
@@ -48,9 +32,16 @@ void Console::onDisconnect()
         lstClt.removeAll(sockClt);
         sockClt->deleteLater();
 
-        //移除对应关系，为后续备用
-        if(sockInfo.find(idt) != sockInfo.end()) sockInfo.remove(idt);
+        //移除对应关系
+        if(mapLinkInfo.find(idt) != mapLinkInfo.end()) mapLinkInfo.remove(idt);
     }
+}
+
+bool Console::isRoomExisted(const QString& roomID)
+{
+    for(auto iter : mapLinkInfo)
+        if(iter.roomID == roomID) return true;
+    return false;
 }
 
 //从数据库查询指定roomID、userID的金额
@@ -97,123 +88,154 @@ double Console::getPriceCost(const QJsonObject& json){
     return money;
 }
 
-//房间开关机
-QString Console::ProcessType0(const QJsonObject& json)
+//空调开机
+QString Console::rcvType0(const QJsonObject& json, InfoIter info)
 {
-    QJsonObject msg;
-    msg[JSONAME_TYPE] = 0;
+    //从包中获取
+    double roomtemp = json[JSONAME_ROOMTEMP].toDouble();
 
-    int isPowerOn = json[JSONAME_POWER].toInt();
+    //对服务端存储的信息进行修改
+    info->roomTemp = roomtemp;
 
-    //插入开关的控制信息
+    //数据库相关
     QSqlQuery query(db);
     int timeStamp = QDateTime::currentSecsSinceEpoch();
     QString stmt = QString("insert into %1 values('%2', '%3', %4, %5, %6, %7, %8)")
             .arg(DBNAME_TABLE_ROOM)
-            .arg(json[JSONAME_ROOMID].toString())
-            .arg(json[JSONAME_USERID].toString())
+            .arg(info->roomID)
+            .arg(info->userID)
             .arg("NULL")
             .arg("NULL")
-            .arg(isPowerOn)
+            .arg(1)
             .arg(timeStamp)
             .arg("NULL");
     bool execed = query.exec(stmt);
 #ifdef DEBUG_DB_QUERY
     qDebug() << "query exec: " << stmt;
-    //qDebug() << query.lastError();
     qDebug() << "suc execed: " << execed;
 #endif
 
-    //todo
-    msg[JSONAME_ACK] = true;
-
-    auto jsonString = jsonobj2string(msg);
-    return jsonString;
+    //返回包
+    QJsonObject ret;
+    ret[JSONAME_TYPE] = 0;
+    ret[JSONAME_MODE] = 0;
+    ret[JSONAME_WNDSPD] = 0;
+    ret[JSONAME_DEFAULTEMP] = 0;
+    ret[JSONAME_FEERATE] = 0;
+    return jsonobj2string(ret);
 }
 
 //房间获取userID
-QString Console::ProcessType1(const QJsonObject& json, QString& idt)
+QString Console::rcvType1(const QJsonObject& json, InfoIter info)
 {
-    QJsonObject msg;
-    msg[JSONAME_TYPE] = 1;
-
+    //从包中获取
     QString roomID = json[JSONAME_ROOMID].toString();
 
-    QSqlQuery query(db);
-    QString stmt = QString("select %1 from %2 where %3 = '%4' order by %5 desc")
-            .arg(DBNAME_FIELD_UID)
-            .arg(DBNAME_TABLE_ROOM)
-            .arg(DBNAME_FIELD_RID)
-            .arg(roomID)
-            .arg(DBNAME_FIELD_TIME);
-    bool execed = query.exec(stmt);
-#ifdef DEBUG_DB_QUERY
-    qDebug() << "query exec: " << stmt;
-    //qDebug() << query.lastError();
-    qDebug() << "suc execed: " << execed;
-#endif
-
-    if(query.next())
+    //检测是否已有该房间的连接、是否已开房
+    bool suc = false;
+    if(!isRoomExisted(roomID))
     {
-        QString userID = query.value(0).toString();
-        msg[JSONAME_ROOMID] = roomID;
-        msg[JSONAME_USERID] = userID;
+        //数据库相关
+        QSqlQuery query(db); //向数据库查询roomID对应的userID
+        QString stmt = QString("select %1 from %2 where %3 = '%4' order by %5 desc")
+                .arg(DBNAME_FIELD_UID)
+                .arg(DBNAME_TABLE_ROOM)
+                .arg(DBNAME_FIELD_RID)
+                .arg(roomID)
+                .arg(DBNAME_FIELD_TIME);
+        bool execed = query.exec(stmt);
+        #ifdef DEBUG_DB_QUERY
+            qDebug() << "query exec: " << stmt;
+            qDebug() << "suc execed: " << execed;
+        #endif
 
-        //保存一个连接与rid和uid的映射关系，为后续功能备用
-        sockInfo.insert(idt, userInfo(roomID, userID));
+        if(query.next())
+        {
+            suc = true;
+            auto userID = query.value(0).toString();
+
+            //对服务端存储的信息进行修改
+            info->roomID = roomID;
+            info->userID = userID;
+        }
+        else qDebug() << "Room not avaliable"; //没有查询到userid
     }
-    else qDebug() << "room access denied"; //没有查询到userid
 
-    auto jsonString = jsonobj2string(msg);
-    return jsonString;
+    //返回包
+    QJsonObject msg;
+    msg[JSONAME_TYPE] = 1;
+    msg[JSONAME_ROOMID] = info->roomID;
+    msg[JSONAME_USERID] = suc ? info->userID : "-1";
+    return jsonobj2string(msg);
 }
 
-//房间改变控制信息
-QString Console::ProcessType2(const QJsonObject& json)
+//房间改变风速
+QString Console::rcvType2(const QJsonObject& json, InfoIter info)
 {
-    QJsonObject msg;
-    msg[JSONAME_TYPE] = 2;
+    //从包中获取
+    auto targetWndSpd = json[JSONAME_WNDSPD].toInt();
 
-    auto jsonAirData = json[JSONAME_AIRDATA];
+    //档位匹配费率
+    double feerate = -1;
+    switch (targetWndSpd) {
+    default:
+        feerate = 666;
+    }
+
     //判断控制信息改变是否合法
-    int wantedTemp = jsonAirData[JSONAME_TEMP].toInt();
-    int wantedWndSpd = jsonAirData[JSONAME_WNDSPD].toInt();
-    if(wantedTemp > 30 || wantedTemp < 15 || wantedWndSpd > 3 || wantedWndSpd < 0);
-        //msg[JSONAME_ACK] = false;
-    else
+    if(feerate != -1)
     {
-        //msg[JSONAME_ACK] = true;
+        //对服务端存储的信息进行修改
+        info->targetWndSpd = targetWndSpd;
 
         //将合法的控制信息保存到数据库中
         QSqlQuery query(db);
         int timeStamp = QDateTime::currentSecsSinceEpoch();
-        QString stmt = QString("insert into %1 values('%2', '%3', %4, %5, %6, %7, %8)")
+        QString stmt = QString("insert into %1 values('%2', '%3', %4, %5, %6, %7, %8)") //todo
                 .arg(DBNAME_TABLE_ROOM)
-                .arg(json[JSONAME_ROOMID].toString())
-                .arg(json[JSONAME_USERID].toString())
-                .arg(jsonAirData[JSONAME_WNDSPD].toInt())
-                .arg(jsonAirData[JSONAME_TEMP].toInt())
-                .arg(json[JSONAME_POWER].toInt())
-                .arg(timeStamp)
-                .arg(jsonAirData[JSONAME_MODE].toInt());
+                .arg(info->roomID)
+                .arg(info->userID)
+                .arg(info->targetWndSpd)
+                .arg("NULL")
+                .arg(1)
+                .arg(timeStamp);
         bool execed = query.exec(stmt);
-#ifdef DEBUG_DB_QUERY
+        #ifdef DEBUG_DB_QUERY
         qDebug() << "query exec: " << stmt;
         //qDebug() << query.lastError();
         qDebug() << "suc execed: " << execed;
-#endif
+        #endif
     }
 
-    //获取金额
-    double money = getPriceCost(json);
-    msg[JSONAME_MONEY] = money;
+    //返回包
+    QJsonObject msg;
+    msg[JSONAME_TYPE] = 2;
+    msg[JSONAME_ACK] = 1;
+    msg[JSONAME_FEERATE] = feerate;
+    msg[JSONAME_WNDSPD] = info->targetWndSpd;
+    return jsonobj2string(msg);
+}
 
-    auto jsonString = jsonobj2string(msg);
-    return jsonString;
+//房间改变温度
+QString Console::rcvType3(const QJsonObject& json, InfoIter info)
+{
+    auto targetTemp = json[JSONAME_TEMP].toInt();
+
+    if(true) //如果温度改变合法
+    {
+        info->targetTemp = targetTemp;
+    }
+
+    //返回包
+    QJsonObject msg;
+    msg[JSONAME_TYPE] = 3;
+    msg[JSONAME_ACK] = 1;
+    msg[JSONAME_TEMP] = info->targetTemp;
+    return jsonobj2string(msg);
 }
 
 //前台开房
-QString Console::ProcessType3(const QJsonObject& json)
+QString Console::rcvType6(const QJsonObject& json)
 {
     QJsonObject msg;
     msg[JSONAME_TYPE] = 3;
@@ -283,9 +305,8 @@ QString Console::ProcessType3(const QJsonObject& json)
     return jsonString;
 }
 
-
-//退房、获取详单
-QString Console::ProcessType4(const QJsonObject& json)
+//前台退房
+QString Console::rcvType7(const QJsonObject& json)
 {
     QJsonObject msg;
     msg[JSONAME_TYPE] = 4;
@@ -333,48 +354,41 @@ QString Console::ProcessType4(const QJsonObject& json)
     return jsonString;
 }
 
-QString Console::ProcessType5(const QJsonObject& json){
+//获取所有空调状态
+QString Console::rcvType10()
+{
+    //返回包
     QJsonObject msg;
-    msg[JSONAME_TYPE] = 5;
+    msg[JSONAME_TYPE] = 10;
 
-    qDebug() << json.empty();
+    QJsonObject airStatus;
+    for(auto iter : mapLinkInfo)
+    {
+        if(iter.roomID.isEmpty()) continue;
 
-    auto jsonString = jsonobj2string(msg);
-    return jsonString;
+        QJsonObject info;
+        info[JSONAME_TEMP] = iter.targetTemp;
+        info[JSONAME_WNDSPD] = iter.targetWndSpd;
+
+        auto infoString = jsonobj2string(info);
+        airStatus[iter.roomID] = infoString;
+    }
+
+    msg[JSONAME_AIRSTATUS] = jsonobj2string(airStatus);
+    return jsonobj2string(msg);
 }
-QString Console::ProcessType6(const QJsonObject& json){
-    QJsonObject msg;
-    msg[JSONAME_TYPE] = 6;
 
-    qDebug() << json.empty();
-
-    auto jsonString = jsonobj2string(msg);
-    return jsonString;
-}
-QString Console::ProcessType7(const QJsonObject& json){
-    QJsonObject msg;
-    msg[JSONAME_TYPE] = 7;
-
-    qDebug() << json.empty();
-
-    auto jsonString = jsonobj2string(msg);
-    return jsonString;
-}
-QString Console::ProcessType8(const QJsonObject& json){
-    QJsonObject msg;
-    msg[JSONAME_TYPE] = 8;
-
-    qDebug() << json.empty();
-
-    auto jsonString = jsonobj2string(msg);
-    return jsonString;
+QMap<QString, LinkInfo>::iterator Console::getLinkInfo(QString& idt)
+{
+    return mapLinkInfo.find(idt);
 }
 
 void Console::process(const QString& msg)
 {
     QJsonObject json = string2jsonobj(msg);
     QWebSocket* clt = qobject_cast<QWebSocket*>(sender());
-    QString ident = getIdentifier(clt);
+    QString idt = getIdentifier(clt);
+    auto info_iter = getLinkInfo(idt);
 
 #ifdef DEBUG_RCV_CONTENT
     qDebug() << "rcv: " << msg;
@@ -386,49 +400,31 @@ void Console::process(const QString& msg)
     switch(opt)
     {
     case 0:
-        jsonRet = ProcessType0(json);
+        jsonRet = rcvType0(json, info_iter);
         break;
     case 1:
-        jsonRet = ProcessType1(json, ident);
+        jsonRet = rcvType1(json, info_iter);
         break;
     case 2:
-        jsonRet = ProcessType2(json);
+        jsonRet = rcvType2(json, info_iter);
         break;
     case 3:
-        jsonRet = ProcessType3(json);
-        break;
-    case 4:
-        jsonRet = ProcessType4(json);
-        break;
-    case 5:
-        jsonRet = ProcessType5(json);
+        jsonRet = rcvType3(json, info_iter);
         break;
     case 6:
-        jsonRet = ProcessType6(json);
         break;
     case 7:
-        jsonRet = ProcessType7(json);
         break;
-    case 8:
-        jsonRet = ProcessType8(json);
+
+    case 10:
+        jsonRet = rcvType10();
         break;
     default:
-        int roomid = json[JSONAME_ROOMID].toInt();
-        int wndspd = json[JSONAME_WNDSPD].toInt();
-        int temp = json[JSONAME_TEMP].toInt();
-        QSqlQuery query(db);
-        auto stmt = QString("insert into room values(%1, null, %2, null, %3, %4)").arg(roomid).arg(opt).arg(wndspd).arg(temp);
-        bool execed = query.exec(stmt);
-
-#ifdef DEBUG_DB_QUERY
-        qDebug() << "query exec: " << stmt;
-        //qDebug() << query.lastError();
-        qDebug() << "suc execed: " << execed;
-#endif
+        qDebug() << "Unknown OptType";
     }
 
 #ifdef DEBUG_SEND_CONTENT
-    qDebug() << "send: " << msg;
+    qDebug() << "Send to " << idt << " : " << jsonRet;
 #endif
     clt->sendTextMessage(jsonRet);
 }

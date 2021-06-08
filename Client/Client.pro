@@ -29,8 +29,7 @@ HEADERS += \
     mainwindow.h \
     manager.h \
     reception.h \
-    room.h \
-    tools.h
+    room.h
 
 FORMS += \
     admin.ui \

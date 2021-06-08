@@ -3,6 +3,7 @@
 
 #include "room.h"
 #include "reception.h"
+#include "admin.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -27,13 +28,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //push button
     connect(ui->pushButtonRoom, &QPushButton::clicked, [=](){
-        //this->hide();
         auto* w = new Room(srvIP, srvPort, roomID);
         w->show();
     });
     connect(ui->pushButtonReception, &QPushButton::clicked, [=](){
-        //this->hide();
         auto* w = new Reception(srvIP, srvPort);
+        w->show();
+    });
+    connect(ui->pushButtonAdmin, &QPushButton::clicked, [=](){
+        auto* w = new Admin(srvIP, srvPort);
         w->show();
     });
 }

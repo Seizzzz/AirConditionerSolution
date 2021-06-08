@@ -1,16 +1,6 @@
 #include "reception.h"
 #include "ui_reception.h"
 
-inline QJsonObject Reception::string2jsonobj(const QString& str)
-{
-    return QJsonDocument::fromJson(str.toLocal8Bit().data()).object();
-}
-
-inline QString Reception::jsonobj2string(const QJsonObject& obj)
-{
-    return QString(QJsonDocument(obj).toJson());
-}
-
 void Reception::onConnected()
 {
     ui->plainTextInfo->appendPlainText("connected\n");
@@ -58,6 +48,9 @@ Reception::Reception(QString ip, int port, QWidget* parent) :
     ui(new Ui::Reception),
     sock(new QWebSocket())
 {
+    //关闭窗口时析构
+    setAttribute(Qt::WA_DeleteOnClose);
+
     ui->setupUi(this);
 
     //socket
@@ -91,4 +84,6 @@ Reception::Reception(QString ip, int port, QWidget* parent) :
 Reception::~Reception()
 {
     delete ui;
+    sock->close();
+    sock->deleteLater();
 }
