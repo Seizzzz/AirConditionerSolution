@@ -37,12 +37,14 @@ private:
     void getInfo(const QJsonObject&);
 
 private:
-    int defaultTemp;
-    int maxTemp;
-    int minTemp;
-    double highFee;
-    double midFee;
-    double lowFee;
+    int mode = 0;
+    int defaultTemp = 24;
+    int defaultWndSpd = 2;
+    int maxTemp = 30;
+    int minTemp = 16;
+    double highFee = 2;
+    double midFee = 1.5;
+    double lowFee = 1;
 };
 
 #endif // ADMIN_H

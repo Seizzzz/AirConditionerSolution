@@ -88,6 +88,22 @@ double Console::getPriceCost(const QJsonObject& json){
     return money;
 }
 
+double Console::wndSpd2Fee(const int& wndspd)
+{
+    switch(wndspd)
+    {
+    case 0:
+        return 0;
+    case 1:
+        return config.lowFee;
+    case 2:
+        return config.midFee;
+    case 3:
+        return config.highFee;
+    }
+    return -1;
+}
+
 //空调开机
 QString Console::rcvType0(const QJsonObject& json, InfoIter info)
 {
@@ -96,6 +112,8 @@ QString Console::rcvType0(const QJsonObject& json, InfoIter info)
 
     //对服务端存储的信息进行修改
     info->roomTemp = roomtemp;
+    info->targetTemp = config.defaultTemp;
+    info->targetWndSpd = config.defaultWndSpd;
 
     //数据库相关
     QSqlQuery query(db);
@@ -118,10 +136,10 @@ QString Console::rcvType0(const QJsonObject& json, InfoIter info)
     //返回包
     QJsonObject ret;
     ret[JSONAME_TYPE] = 0;
-    ret[JSONAME_MODE] = 0;
-    ret[JSONAME_WNDSPD] = 0;
-    ret[JSONAME_DEFAULTEMP] = 0;
-    ret[JSONAME_FEERATE] = 0;
+    ret[JSONAME_MODE] = config.mode;
+    ret[JSONAME_WNDSPD] = info->targetWndSpd;
+    ret[JSONAME_DEFAULTEMP] = info->targetTemp;
+    ret[JSONAME_FEERATE] = wndSpd2Fee(info->targetWndSpd);
     return jsonobj2string(ret);
 }
 
@@ -157,6 +175,9 @@ QString Console::rcvType1(const QJsonObject& json, InfoIter info)
             //对服务端存储的信息进行修改
             info->roomID = roomID;
             info->userID = userID;
+
+            //queueServing
+            queueWaiting.insert(roomID, info);
         }
         else qDebug() << "Room not avaliable"; //没有查询到userid
     }
@@ -177,10 +198,7 @@ QString Console::rcvType2(const QJsonObject& json, InfoIter info)
 
     //档位匹配费率
     double feerate = -1;
-    switch (targetWndSpd) {
-    default:
-        feerate = 666;
-    }
+    feerate = wndSpd2Fee(targetWndSpd);
 
     //判断控制信息改变是否合法
     if(feerate != -1)
@@ -378,6 +396,24 @@ QString Console::rcvType10()
     return jsonobj2string(msg);
 }
 
+//获取所有空调状态
+QString Console::rcvType11(const QJsonObject& json)
+{
+    config.mode = json[JSONAME_MODE].toInt();
+    config.defaultTemp = json[JSONAME_DEFAULTEMP].toInt();
+    config.maxTemp = json[JSONAME_HIGHTEMP].toInt();
+    config.minTemp = json[JSONAME_LOWTEMP].toInt();
+    config.highFee = json[JSONAME_HIGHFEE].toDouble();
+    config.midFee = json[JSONAME_MIDFEE].toDouble();
+    config.lowFee = json[JSONAME_LOWFEE].toDouble();
+
+    //返回包
+    QJsonObject msg;
+    msg[JSONAME_TYPE] = 11;
+    msg[JSONAME_ACK] = 1;
+    return jsonobj2string(msg);
+}
+
 QMap<QString, LinkInfo>::iterator Console::getLinkInfo(QString& idt)
 {
     return mapLinkInfo.find(idt);
@@ -419,6 +455,11 @@ void Console::process(const QString& msg)
     case 10:
         jsonRet = rcvType10();
         break;
+
+    case 11:
+        jsonRet = rcvType11(json);
+        break;
+
     default:
         qDebug() << "Unknown OptType";
     }

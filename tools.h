@@ -49,8 +49,17 @@ enum class TurnOnOffType
 #define JSONAME_ACK "Ack"
 #define JSONAME_MONEY "Money"
 
+#define JSONAME_INTIME "In"
+#define JSONAME_DATAIN "dataIn"
+#define JSONAME_DATAOUT "dataOut"
+#define JSONAME_DETAIL "Detail"
+#define JSONAME_REQSTARTIME "RequestStartTime"
+#define JSONAME_REQENDTIME "RequestEndTime"
+#define JSONAME_PARTFEE "PartFee"
+
 #define JSONAME_ROOMTEMP "RoomTemp"
 #define JSONAME_DEFAULTEMP "DefaultTemp"
+#define JSONAME_DEFAULTWNDSPD "DefaultSpeed"
 #define JSONAME_FEERATE "FeeRate"
 #define JSONAME_HIGHTEMP "HighestTemp"
 #define JSONAME_LOWTEMP "LowestTemp"
@@ -58,7 +67,6 @@ enum class TurnOnOffType
 #define JSONAME_MIDFEE "MidFee"
 #define JSONAME_LOWFEE "LowFee"
 
-#define JSONAME_DETAIL "CostDetail"
 #define JSONAME_STIME "TimeStart"
 #define JSONAME_ETIME "TimeEnd"
 #define JSONAME_COST "Cost"

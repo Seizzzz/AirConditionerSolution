@@ -32,6 +32,7 @@ void Admin::getInfo(const QJsonObject& json)
 
 void Admin::onMsgRcv(const QString& msg)
 {
+    qDebug() << "rcv: " << msg;
     auto json = string2jsonobj(msg);
 
     int opt = json["MsgType"].toInt();
@@ -80,15 +81,42 @@ Admin::Admin(QString ip, int port, QWidget *parent) :
     });
 
     //更新配置信息
+    connect(ui->comboBoxMode, &QComboBox::currentTextChanged, [=](){
+        mode = ui->comboBoxMode->currentIndex();
+    });
+    connect(ui->lineEditDefTemp, &QLineEdit::textEdited, [=](){
+        defaultTemp = ui->lineEditDefTemp->text().toInt();
+    });
+    connect(ui->lineEditDefWndSpd, &QLineEdit::textEdited, [=](){
+        defaultWndSpd = ui->lineEditLowFee->text().toInt();
+    });
+    connect(ui->lineEditMaxTemp, &QLineEdit::textEdited, [=](){
+        maxTemp = ui->lineEditMaxTemp->text().toInt();
+    });
+    connect(ui->lineEditMinTemp, &QLineEdit::textEdited, [=](){
+        minTemp = ui->lineEditMinTemp->text().toInt();
+    });
+    connect(ui->lineEditLowFee, &QLineEdit::textEdited, [=](){
+        lowFee = ui->lineEditLowFee->text().toDouble();
+    });
+    connect(ui->lineEditMidFee, &QLineEdit::textEdited, [=](){
+        midFee = ui->lineEditMidFee->text().toDouble();
+    });
+    connect(ui->lineEditLowFee, &QLineEdit::textEdited, [=](){
+        lowFee = ui->lineEditLowFee->text().toDouble();
+    });
+
     connect(ui->pushButtonConfig, &QPushButton::clicked, [=](){
         QJsonObject json;
         json[JSONAME_TYPE] = 11;
-        json[JSONAME_DEFAULTEMP] = defaultTemp;
-        json[JSONAME_HIGHTEMP] = maxTemp;
-        json[JSONAME_LOWTEMP] = minTemp;
-        json[JSONAME_HIGHFEE] = highFee;
-        json[JSONAME_MIDFEE] = midFee;
-        json[JSONAME_LOWFEE] = lowFee;
+        json[JSONAME_MODE] = QString::number(mode);
+        json[JSONAME_DEFAULTEMP] = QString::number(defaultTemp);
+        json[JSONAME_DEFAULTWNDSPD] = QString::number(defaultWndSpd);
+        json[JSONAME_HIGHTEMP] = QString::number(maxTemp);
+        json[JSONAME_LOWTEMP] = QString::number(minTemp);
+        json[JSONAME_HIGHFEE] = QString::number(highFee);
+        json[JSONAME_MIDFEE] = QString::number(midFee);
+        json[JSONAME_LOWFEE] = QString::number(lowFee);
 
         auto jsonString = jsonobj2string(json);
         sock->sendTextMessage(jsonString);

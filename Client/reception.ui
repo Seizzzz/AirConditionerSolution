@@ -6,60 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>401</width>
-    <height>471</height>
+    <width>600</width>
+    <height>350</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QPushButton" name="pushButtonCheckIn">
-   <property name="geometry">
-    <rect>
-     <x>250</x>
-     <y>30</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>开房</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButtonCheckOut">
-   <property name="geometry">
-    <rect>
-     <x>250</x>
-     <y>60</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>退房</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="lineEditCheckOut">
-   <property name="geometry">
-    <rect>
-     <x>120</x>
-     <y>60</y>
-     <width>113</width>
-     <height>20</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QPlainTextEdit" name="plainTextInfo">
-   <property name="geometry">
-    <rect>
-     <x>40</x>
-     <y>100</y>
-     <width>321</width>
-     <height>111</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="lineEditCheckIn">
+  <widget class="QLineEdit" name="lineEditRoomID">
    <property name="geometry">
     <rect>
      <x>120</x>
@@ -67,26 +21,13 @@
      <width>113</width>
      <height>20</height>
     </rect>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>60</x>
-     <y>30</y>
-     <width>54</width>
-     <height>12</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>UserID:</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
      <x>60</x>
-     <y>60</y>
+     <y>30</y>
      <width>54</width>
      <height>12</height>
     </rect>
@@ -95,41 +36,100 @@
     <string>RoomID:</string>
    </property>
   </widget>
-  <widget class="QTableWidget" name="tableWidget">
+  <widget class="QPushButton" name="pushButtonBill">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>230</y>
-     <width>361</width>
-     <height>231</height>
+     <x>270</x>
+     <y>20</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>账单</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButtonDetail">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>60</y>
+     <width>75</width>
+     <height>23</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>详单</string>
+   </property>
+  </widget>
+  <widget class="QTableWidget" name="tableWidgetBill">
+   <property name="geometry">
+    <rect>
+     <x>40</x>
+     <y>90</y>
+     <width>221</width>
+     <height>61</height>
     </rect>
    </property>
    <attribute name="horizontalHeaderDefaultSectionSize">
-    <number>70</number>
+    <number>50</number>
    </attribute>
    <column>
     <property name="text">
-     <string>时间</string>
+     <string>房间号</string>
     </property>
    </column>
    <column>
     <property name="text">
-     <string>开关</string>
+     <string>in</string>
     </property>
    </column>
    <column>
     <property name="text">
-     <string>模式</string>
+     <string>out</string>
     </property>
    </column>
    <column>
     <property name="text">
-     <string>温度</string>
+     <string>金额</string>
+    </property>
+   </column>
+  </widget>
+  <widget class="QTableWidget" name="tableWidgetDetail">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>90</y>
+     <width>271</width>
+     <height>192</height>
+    </rect>
+   </property>
+   <attribute name="horizontalHeaderDefaultSectionSize">
+    <number>50</number>
+   </attribute>
+   <column>
+    <property name="text">
+     <string>start</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>end</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>本段消费</string>
     </property>
    </column>
    <column>
     <property name="text">
      <string>风速</string>
+    </property>
+   </column>
+   <column>
+    <property name="text">
+     <string>费率</string>
     </property>
    </column>
   </widget>

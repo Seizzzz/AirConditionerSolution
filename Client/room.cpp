@@ -10,8 +10,9 @@ struct AirData
 
     AirData()
     {
-        temp = 26;
-        wndspd = 1;
+        power = 0;
+        temp = -1;
+        wndspd = -1;
         mode = 0;
     }
 };
@@ -26,6 +27,7 @@ struct syncInfo
 
 static double FeeRate;
 static double PriceCost;
+static double roomTemp = 24;
 static syncInfo currState;
 
 void Room::sendMsg(int type)
@@ -36,30 +38,47 @@ void Room::sendMsg(int type)
     switch(type)
     {
     case 0:
+        //发送房间当前温度
+        json[JSONAME_ROOMID] = svRoomID;
+        json[JSONAME_ROOMTEMP] = QString::number(roomTemp);
         break;
-
     case 1:
         //发送RoomID以获取UserID
         json[JSONAME_ROOMID] = svRoomID;
+        json[JSONAME_ROOMTEMP] = QString::number(roomTemp);
         break;
-
     case 2:
-    {
+        //改变风速
         json[JSONAME_ROOMID] = svRoomID;
         json[JSONAME_USERID] = svUserID;
-        json[JSONAME_POWER] = currState.airdata.power;
-        QJsonObject jsonAirData;
-        jsonAirData[JSONAME_TEMP] = currState.airdata.temp;
-        jsonAirData[JSONAME_WNDSPD] = currState.airdata.wndspd;
-        jsonAirData[JSONAME_MODE] = currState.airdata.mode;
-        //json[JSONAME_AIRDATA] = jsonobj2string(jsonAirData);
-        json.insert(JSONAME_AIRDATA, jsonAirData);
-
+        json[JSONAME_WNDSPD] = QString::number(currState.airdata.wndspd);
         break;
-    }
+    case 3:
+        //改变温度
+        json[JSONAME_ROOMID] = svRoomID;
+        json[JSONAME_USERID] = svUserID;
+        json[JSONAME_TEMP] = QString::number(currState.airdata.temp);
+        break;
+    case 13:
+        //关机
+        json[JSONAME_ROOMID] = svRoomID;
+        json[JSONAME_USERID] = svUserID;
+        break;
+    case 14:
+        //回温
+        json[JSONAME_ROOMID] = svRoomID;
+        json[JSONAME_ROOMTEMP] = QString::number(roomTemp);
+        break;
+    case 100:
+    case 101:
+    case 102:
+        json[JSONAME_ROOMID] = svRoomID;
+        json[JSONAME_ROOMTEMP] = QString::number(roomTemp);
+        break;
     }
 
     auto jsonString = jsonobj2string(json);
+    qDebug() << "send: " << jsonString;
     sock->sendTextMessage(jsonString);
 }
 
@@ -92,10 +111,10 @@ void Room::onDisconnect()
 //开机返回包
 void Room::rcvType0(const QJsonObject& json)
 {
-    currState.airdata.mode = json[JSONAME_MODE].toInt();
-    currState.airdata.wndspd = json[JSONAME_WNDSPD].toInt();
-    currState.airdata.temp = json[JSONAME_DEFAULTEMP].toInt();
-    FeeRate = json[JSONAME_FEERATE].toDouble();
+    currState.airdata.mode = json[JSONAME_MODE].toString().toInt();
+    currState.airdata.wndspd = json[JSONAME_WNDSPD].toString().toInt();
+    currState.airdata.temp = json[JSONAME_TEMP].toString().toInt();
+    FeeRate = json[JSONAME_FEERATE].toString().toFloat();
 }
 
 //获取UserID
@@ -127,6 +146,13 @@ void Room::rcvType3(const QJsonObject& json)
 void Room::rcvType4(const QJsonObject& json)
 {
     currState.airdata.mode = json[JSONAME_MODE].toInt();
+}
+
+//收取当前消费和环境温度
+void Room::rcvType5(const QJsonObject& json)
+{
+    PriceCost = json[JSONAME_MONEY].toDouble();
+    roomTemp = json[JSONAME_ROOMTEMP].toDouble();
 }
 
 //关机返回包
@@ -167,6 +193,12 @@ void Room::onMsgRcv(const QString& msg)
 
     case 13:
         rcvType13(json);
+        break;      
+
+    case 100:
+    case 101:
+    case 102:
+        sendMsg(json[JSONAME_TYPE].toInt());
         break;
     }
 
@@ -189,9 +221,9 @@ void Room::reqEnter()
 
 void Room::updateUI()
 {
-    if(currState.airdata.power)
+    if(currState.airdata.power) //温度颜色显示
     {
-        if(currState.airdata.mode) ui->LCDTemp->setStyleSheet("color: green");
+        if(currState.airdata.mode == 0) ui->LCDTemp->setStyleSheet("color: green");
         else ui->LCDTemp->setStyleSheet("color: red");
     }
     else ui->LCDTemp->setStyleSheet("color: black");

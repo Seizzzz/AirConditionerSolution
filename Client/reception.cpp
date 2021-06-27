@@ -3,34 +3,48 @@
 
 void Reception::onConnected()
 {
-    ui->plainTextInfo->appendPlainText("connected\n");
+    qDebug() << "connected";
 }
 
 void Reception::onDisconnect()
 {
-    ui->plainTextInfo->appendPlainText("disconnected\n");
+    qDebug() << "disconnected";
 }
 
 void Reception::onMsgRcv(const QString& msg)
 {
+    qDebug() << "rcv: " << msg;
     auto json = string2jsonobj(msg);
 
-    int opt = json["MsgType"].toInt();
+    int opt = json[JSONAME_TYPE].toInt();
     switch (opt)
     {
-    case 3:
+    case 8: //账单
     {
-        ui->plainTextInfo->appendPlainText("成功开房！");
-        QString roomID = json["RoomId"].toString();
-        QString userID = json["UserId"].toString();
-        ui->plainTextInfo->appendPlainText(QString("顾客%1的房间号为：%2\n").arg(userID).arg(roomID));
+        ui->tableWidgetBill->setRowCount(1);
+        ui->tableWidgetBill->setItem(0, 0, new QTableWidgetItem(json[JSONAME_ROOMID].toString()));
+        ui->tableWidgetBill->setItem(0, 1, new QTableWidgetItem(json[JSONAME_INTIME].toString()));
+        ui->tableWidgetBill->setItem(0, 2, new QTableWidgetItem(json[JSONAME_OUTTIME].toString()));
+        ui->tableWidgetBill->setItem(0, 3, new QTableWidgetItem(json[JSONAME_MONEY].toString()));
+        break;
     }
-    case 4:
+    case 9: //详单
     {
-        ui->plainTextInfo->appendPlainText("成功退房！");
-        QString roomID = json["RoomId"].toString();
-        QString userID = json["UserId"].toString();
-        ui->plainTextInfo->appendPlainText(QString("退房顾客%1的房间号为：%2\n").arg(userID).arg(roomID));
+        auto detail = string2jsonobj(json[JSONAME_DETAIL].toString());
+
+        auto keys = detail.keys();
+        int row = 0;
+        for(auto record : keys)
+        {
+            auto info = string2jsonobj(detail[record].toString());
+            ui->tableWidgetDetail->setRowCount(row+1);
+            ui->tableWidgetDetail->setItem(row, 0, new QTableWidgetItem(info[JSONAME_REQSTARTIME].toString()));
+            ui->tableWidgetDetail->setItem(row, 1, new QTableWidgetItem(info[JSONAME_REQENDTIME].toString()));
+            ui->tableWidgetDetail->setItem(row, 2, new QTableWidgetItem(info[JSONAME_PARTFEE].toString()));
+            ui->tableWidgetDetail->setItem(row, 2, new QTableWidgetItem(info[JSONAME_WNDSPD].toString()));
+            ui->tableWidgetDetail->setItem(row, 2, new QTableWidgetItem(info[JSONAME_FEERATE].toString()));
+            ++row;
+        }
     }
     }
 }
@@ -59,22 +73,19 @@ Reception::Reception(QString ip, int port, QWidget* parent) :
     connect(sock, &QWebSocket::textMessageReceived, this, &Reception::onMsgRcv);
     connectSrv(ip, port);
 
-    connect(ui->pushButtonCheckIn, &QPushButton::clicked, [=](){
+    connect(ui->pushButtonBill, &QPushButton::clicked, [=](){
         QJsonObject json;
-        json["MsgType"] = 3;
-        json["UserId"] = ui->lineEditCheckIn->text();
-        jsonobj2string(json);
+        json[JSONAME_TYPE] = 8;
+        json[JSONAME_ROOMID] = ui->lineEditRoomID->text();
 
         auto jsonString = jsonobj2string(json);
         sock->sendTextMessage(jsonString);
     });
 
-    connect(ui->pushButtonCheckOut, &QPushButton::clicked, [=](){
+    connect(ui->pushButtonDetail, &QPushButton::clicked, [=](){
         QJsonObject json;
-        json["MsgType"] = 4;
-        //json["Roomid"] = ui->lineEditCheckIn->text();
-        json["RoomId"] = ui->lineEditCheckOut->text();
-        jsonobj2string(json);
+        json[JSONAME_TYPE] = 9;
+        json[JSONAME_ROOMID] = ui->lineEditRoomID->text();
 
         auto jsonString = jsonobj2string(json);
         sock->sendTextMessage(jsonString);

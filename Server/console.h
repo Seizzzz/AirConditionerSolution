@@ -34,7 +34,6 @@ struct LinkInfo
     QString roomID;
     QString userID;
     double roomTemp; //房间温度
-
     int targetTemp; //目标温度
     int targetWndSpd; //风速
 
@@ -47,14 +46,24 @@ struct LinkInfo
 
 struct ConfigInfo
 {
-    double FeeRateLight;
-    double FeeRateGentle;
-    double FeeRateStrong;
+    int mode;
+    int defaultTemp;
+    int defaultWndSpd;
+    int maxTemp;
+    int minTemp;
+    double highFee;
+    double midFee;
+    double lowFee;
 
     ConfigInfo() {
-        FeeRateLight = 0;
-        FeeRateGentle = 0;
-        FeeRateStrong = 0;
+        mode = 0;
+        defaultTemp = 0;
+        defaultWndSpd = 1;
+        maxTemp = 0;
+        minTemp = 0;
+        highFee = 0;
+        midFee = 0;
+        lowFee = 0;
     }
 };
 static ConfigInfo config;
@@ -77,7 +86,9 @@ private:
     QString rcvType6(const QJsonObject& json);
     QString rcvType7(const QJsonObject& json);
     QString rcvType10();
+    QString rcvType11(const QJsonObject& json);
     double getPriceCost(const QJsonObject& json);
+    double wndSpd2Fee(const int&);
 
 private:
     void onNewConnection();
@@ -87,6 +98,8 @@ private:
     QList<QWebSocket*> lstClt;
     QMap<QString, LinkInfo> mapLinkInfo;
     QMap<QString, LinkInfo>::iterator getLinkInfo(QString&);
+    QMap<QString, InfoIter> queueServing;
+    QMap<QString, InfoIter> queueWaiting;
     bool isRoomExisted(const QString&);
 
 private:

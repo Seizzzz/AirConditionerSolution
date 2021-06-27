@@ -16,8 +16,8 @@
   <widget class="QTableWidget" name="tableWidget">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>150</y>
+     <x>30</x>
+     <y>160</y>
      <width>501</width>
      <height>201</height>
     </rect>
@@ -66,47 +66,11 @@
     </property>
    </column>
   </widget>
-  <widget class="QLineEdit" name="lineEditShutRoom">
-   <property name="geometry">
-    <rect>
-     <x>130</x>
-     <y>370</y>
-     <width>113</width>
-     <height>20</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButtonShut">
-   <property name="geometry">
-    <rect>
-     <x>260</x>
-     <y>370</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>强制关机</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="labelShut">
-   <property name="geometry">
-    <rect>
-     <x>60</x>
-     <y>380</y>
-     <width>54</width>
-     <height>12</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>房间号：</string>
-   </property>
-  </widget>
   <widget class="QWidget" name="horizontalLayoutWidget">
    <property name="geometry">
     <rect>
-     <x>50</x>
-     <y>10</y>
+     <x>40</x>
+     <y>40</y>
      <width>160</width>
      <height>31</height>
     </rect>
@@ -120,15 +84,19 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEditDefTemp"/>
+     <widget class="QLineEdit" name="lineEditDefTemp">
+      <property name="text">
+       <string>24</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
   <widget class="QWidget" name="horizontalLayoutWidget_2">
    <property name="geometry">
     <rect>
-     <x>50</x>
-     <y>50</y>
+     <x>40</x>
+     <y>80</y>
      <width>160</width>
      <height>31</height>
     </rect>
@@ -142,15 +110,19 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEditMaxTemp"/>
+     <widget class="QLineEdit" name="lineEditMaxTemp">
+      <property name="text">
+       <string>30</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
   <widget class="QWidget" name="horizontalLayoutWidget_3">
    <property name="geometry">
     <rect>
-     <x>50</x>
-     <y>90</y>
+     <x>40</x>
+     <y>120</y>
      <width>160</width>
      <height>31</height>
     </rect>
@@ -164,41 +136,32 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEditMinTemp"/>
+     <widget class="QLineEdit" name="lineEditMinTemp">
+      <property name="text">
+       <string>16</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
   <widget class="QPushButton" name="pushButtonConfig">
    <property name="geometry">
     <rect>
-     <x>440</x>
-     <y>90</y>
+     <x>430</x>
+     <y>110</y>
      <width>75</width>
      <height>23</height>
     </rect>
    </property>
    <property name="text">
-    <string>更新配置</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="pushButtonPower">
-   <property name="geometry">
-    <rect>
-     <x>440</x>
-     <y>50</y>
-     <width>75</width>
-     <height>23</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>运行/停止</string>
+    <string>运行</string>
    </property>
   </widget>
   <widget class="QWidget" name="horizontalLayoutWidget_4">
    <property name="geometry">
     <rect>
-     <x>240</x>
-     <y>90</y>
+     <x>230</x>
+     <y>120</y>
      <width>160</width>
      <height>31</height>
     </rect>
@@ -212,15 +175,19 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEditLowFee"/>
+     <widget class="QLineEdit" name="lineEditLowFee">
+      <property name="text">
+       <string>1</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
   <widget class="QWidget" name="horizontalLayoutWidget_5">
    <property name="geometry">
     <rect>
-     <x>240</x>
-     <y>10</y>
+     <x>230</x>
+     <y>40</y>
      <width>160</width>
      <height>31</height>
     </rect>
@@ -234,15 +201,19 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEditHighFee"/>
+     <widget class="QLineEdit" name="lineEditHighFee">
+      <property name="text">
+       <string>2</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
   <widget class="QWidget" name="horizontalLayoutWidget_6">
    <property name="geometry">
     <rect>
-     <x>240</x>
-     <y>50</y>
+     <x>230</x>
+     <y>80</y>
      <width>160</width>
      <height>31</height>
     </rect>
@@ -256,7 +227,11 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEditMidFee"/>
+     <widget class="QLineEdit" name="lineEditMidFee">
+      <property name="text">
+       <string>1.5</string>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -272,6 +247,65 @@
    <property name="text">
     <string>刷新列表</string>
    </property>
+  </widget>
+  <widget class="QComboBox" name="comboBoxMode">
+   <property name="geometry">
+    <rect>
+     <x>120</x>
+     <y>10</y>
+     <width>69</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <item>
+    <property name="text">
+     <string>制冷</string>
+    </property>
+   </item>
+   <item>
+    <property name="text">
+     <string>制热</string>
+    </property>
+   </item>
+  </widget>
+  <widget class="QLabel" name="label_7">
+   <property name="geometry">
+    <rect>
+     <x>50</x>
+     <y>20</y>
+     <width>54</width>
+     <height>12</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>模式：</string>
+   </property>
+  </widget>
+  <widget class="QWidget" name="horizontalLayoutWidget_7">
+   <property name="geometry">
+    <rect>
+     <x>230</x>
+     <y>0</y>
+     <width>160</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_7">
+    <item>
+     <widget class="QLabel" name="label_8">
+      <property name="text">
+       <string>默认风速：</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLineEdit" name="lineEditDefWndSpd">
+      <property name="text">
+       <string>1</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
  </widget>
  <resources/>

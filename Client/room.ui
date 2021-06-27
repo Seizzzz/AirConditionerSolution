@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>633</width>
-    <height>347</height>
+    <width>600</width>
+    <height>350</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,7 +23,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>1</number>
    </property>
    <widget class="QWidget" name="page">
     <widget class="QPushButton" name="pushButtonWelcome">
@@ -157,7 +157,7 @@
          <number>2</number>
         </property>
         <property name="intValue" stdset="0">
-         <number>1</number>
+         <number>-1</number>
         </property>
        </widget>
       </item>
@@ -244,7 +244,7 @@
          <number>2</number>
         </property>
         <property name="intValue" stdset="0">
-         <number>26</number>
+         <number>-1</number>
         </property>
        </widget>
       </item>
@@ -312,6 +312,32 @@
       </item>
       <item>
        <widget class="QLabel" name="labelFeeValue">
+        <property name="text">
+         <string>0</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+    <widget class="QWidget" name="horizontalLayoutWidget_5">
+     <property name="geometry">
+      <rect>
+       <x>260</x>
+       <y>230</y>
+       <width>160</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <layout class="QHBoxLayout" name="horizontalLayout_Cost_3">
+      <item>
+       <widget class="QLabel" name="labelConst1_2">
+        <property name="text">
+         <string>当前温度：</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="labelTemp">
         <property name="text">
          <string>0</string>
         </property>

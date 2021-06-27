@@ -54,6 +54,7 @@ private:
     void rcvType2(const QJsonObject& json);
     void rcvType3(const QJsonObject& json);
     void rcvType4(const QJsonObject& json);
+    void rcvType5(const QJsonObject& json);
     void rcvType13(const QJsonObject& json);
 
 private:
